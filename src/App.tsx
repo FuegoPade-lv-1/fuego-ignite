@@ -5,13 +5,23 @@ import { supabase } from './lib/supabase';
 // ─── Animated Section Wrapper ───
 function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: '-60px' });
+  const inView = useInView(ref, { once: true, amount: 0.1 });
+  const [forceShow, setForceShow] = useState(false);
+
+  // Fallback: force show after delay + 1.5s in case IntersectionObserver fails
+  useEffect(() => {
+    const timer = setTimeout(() => setForceShow(true), (delay + 1.5) * 1000);
+    return () => clearTimeout(timer);
+  }, [delay]);
+
+  const show = inView || forceShow;
+
   return (
     <motion.div
       ref={ref}
       initial={{ opacity: 0, y: 30 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
+      animate={show ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.6, delay: forceShow && !inView ? 0 : delay, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       {children}
     </motion.div>

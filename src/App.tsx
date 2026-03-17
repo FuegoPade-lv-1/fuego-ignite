@@ -195,14 +195,33 @@ function PricingTier({ name, price, spots, highlighted = false, tag }: { name: s
   );
 }
 
-// ─── FuegoBall SVG ───
+// ─── FuegoBall SVG (real logo from app) ───
 function FuegoBall({ size = 40 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-      <circle cx="50" cy="50" r="48" stroke="#CCFF00" strokeWidth="2" opacity="0.3" />
-      <circle cx="50" cy="50" r="35" stroke="#CCFF00" strokeWidth="1.5" opacity="0.2" />
-      <path d="M35 50 Q50 20 65 50 Q50 80 35 50Z" fill="#CCFF00" opacity="0.6" />
+    <svg width={size} height={size} viewBox="0 0 264.71 312.73" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#CCFF00" d="M232.22,155.87c0-3-.26-7.42-1-11-6,3-9.41,3.85-14,5,2.11,18.29,6.9,43.29-8.51,57.86,18.93-8.68,23.51-28.86,23.51-51.86Z"/>
+      <path fill="#CCFF00" d="M137.85,128.55c-46.24,17.09-111.68,12.01-117.24,76.92,16.02-48.06,108.92-32.43,130.57-66.48-4.81-3.01-9.28-6.52-13.33-10.45Z"/>
+      <path fill="#CCFF00" d="M203.22,151.87c-9.14,1.04-19.46-.73-28.23-2.87-25.67,58.31-128.46,39.12-156.19,79.6C5.24,250.94.46,289.07,0,312.73c.6-1.9.82-3.88,1.44-5.78,11.25-28.66,46.09-36.31,72.25-45.96,60.89-22.92,143.2-20.87,129.54-109.12Z"/>
+      <path fill="#CCFF00" d="M115.39,83.73c-49.68-2.79-93.85,17.01-96.22,70.76,6.74-17.23,24.47-27.74,40.42-35.55,19.53-8.93,41.66-6.84,62.02-12.63-3.46-7.01-4.93-14.6-6.22-22.58Z"/>
+      <g>
+        <path fill="#CCFF00" d="M199.86.36c2.52.92,1.71,2.81,1.35,4.58-6.76,33.52-37.06,57.44-71.59,56.5-5.37-.15-5.92-.89-4.75-6.35C132.26,21.41,164.85-3.28,199.86.36Z"/>
+        <path fill="#CCFF00" d="M124.34,84.21c-.43-1.97-.82-5.22-.8-7.23.04-4.67,1.36-4.44,8.24-4.44,38.65.03,71.51-26.32,80.04-64.18,1.31-5.8,1.57-5.94,7.27-3.86,25.92,9.43,45.32,35.76,45.62,61.33.02,1.47-1.17,2.66-2.64,2.69-40.81.56-76.3,23.06-85.6,65.08-1.06,4.52-2.58,5.69-7.05,3.87-24.37-9.63-39.55-28.22-45.08-53.25Z"/>
+        <path fill="#CCFF00" d="M188.61,141.54c-2.5-.78-2-2.7-1.68-4.51,5.83-33.3,38.79-58.8,72.98-56.69,4.55.28,4.16,2.65,3.58,5.65-6.39,33.97-40.51,58.4-74.89,55.55Z"/>
+      </g>
     </svg>
+  );
+}
+
+// ─── Full FUEGO PADEL Logo ───
+function FuegoLogo({ ballSize = 32, textSize = '24px' }: { ballSize?: number; textSize?: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <FuegoBall size={ballSize} />
+      <div style={{ fontWeight: 800, fontSize: textSize, letterSpacing: '-0.5px' }}>
+        <span style={{ color: '#fff' }}>FUEGO </span>
+        <span style={{ color: '#CCFF00' }}>PADEL</span>
+      </div>
+    </div>
   );
 }
 
@@ -226,13 +245,13 @@ export default function App() {
         }} />
 
         <FadeIn>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px', justifyContent: 'center' }}>
-            <FuegoBall size={36} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', marginBottom: '32px' }}>
+            <FuegoLogo ballSize={44} textSize="28px" />
             <span style={{
               fontFamily: 'var(--mono)', fontSize: '13px', fontWeight: 700,
               letterSpacing: '4px', color: '#CCFF00', textTransform: 'uppercase',
             }}>
-              FUEGO IGNITE
+              IGNITE
             </span>
           </div>
         </FadeIn>
@@ -358,11 +377,7 @@ export default function App() {
         padding: '40px 24px', borderTop: '1px solid var(--border)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <FuegoBall size={24} />
-          <span style={{ fontWeight: 700, color: '#CCFF00', fontSize: '14px' }}>FUEGO</span>
-          <span style={{ color: 'var(--white-20)', fontSize: '14px' }}>PADEL</span>
-        </div>
+        <FuegoLogo ballSize={28} textSize="18px" />
         <div style={{ display: 'flex', gap: '24px', fontSize: '13px' }}>
           <a href="https://app.fuego-padel.com/terms" target="_blank" rel="noopener">Terms</a>
           <a href="https://app.fuego-padel.com/privacy" target="_blank" rel="noopener">Privacy</a>

@@ -215,12 +215,21 @@ function FuegoBall({ size = 40 }: { size?: number }) {
 // ─── Full FUEGO PADEL Logo ───
 function FuegoLogo({ ballSize = 32, textSize = '24px' }: { ballSize?: number; textSize?: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minHeight: ballSize }}>
       <FuegoBall size={ballSize} />
-      <div style={{ fontWeight: 800, fontSize: textSize, letterSpacing: '-0.5px' }}>
-        <span style={{ color: '#fff' }}>FUEGO </span>
+      <span style={{
+        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+        fontWeight: 800,
+        fontSize: textSize,
+        letterSpacing: '-0.5px',
+        lineHeight: 1.2,
+        display: 'inline-block',
+        whiteSpace: 'nowrap',
+        color: '#FFFFFF',
+      }}>
+        FUEGO{' '}
         <span style={{ color: '#CCFF00' }}>PADEL</span>
-      </div>
+      </span>
     </div>
   );
 }

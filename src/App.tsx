@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { supabase } from './lib/supabase';
 
 // ─── Animated Section Wrapper ───
@@ -24,6 +24,165 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
     >
       {children}
     </motion.div>
+  );
+}
+
+// ─── Typewriter Effect ───
+function Typewriter({ text, delay = 0, speed = 30, style }: { text: string; delay?: number; speed?: number; style?: React.CSSProperties }) {
+  const [displayed, setDisplayed] = useState('');
+  const [started, setStarted] = useState(false);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    const startTimer = setTimeout(() => setStarted(true), delay);
+    return () => clearTimeout(startTimer);
+  }, [delay]);
+
+  useEffect(() => {
+    if (!started) return;
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setDisplayed(text.slice(0, i));
+      if (i >= text.length) {
+        clearInterval(interval);
+        setDone(true);
+      }
+    }, speed);
+    return () => clearInterval(interval);
+  }, [started, text, speed]);
+
+  if (!started) return <p style={{ ...style, opacity: 0 }}>{text}</p>;
+
+  return (
+    <p style={style}>
+      {displayed}
+      {!done && (
+        <motion.span
+          animate={{ opacity: [1, 0] }}
+          transition={{ repeat: Infinity, duration: 0.6 }}
+          style={{ display: 'inline-block', width: '2px', height: '1em', background: '#CCFF00', marginLeft: '2px', verticalAlign: 'text-bottom' }}
+        />
+      )}
+    </p>
+  );
+}
+
+// ─── Animated Counter (counts down from 1000 to target) ───
+function AnimatedCounter({ target, duration = 1500 }: { target: number; duration?: number }) {
+  const [value, setValue] = useState(1000);
+
+  useEffect(() => {
+    if (target === null || target === undefined) return;
+    const start = 1000;
+    const end = target;
+    const startTime = performance.now();
+
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.round(start + (end - start) * eased));
+      if (progress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [target, duration]);
+
+  return <>{value}</>;
+}
+
+// ─── Pulsing Background ───
+function HeroBackground() {
+  return (
+    <>
+      {/* Primary pulsing glow */}
+      <motion.div
+        animate={{
+          scale: [1, 1.15, 1],
+          opacity: [0.06, 0.12, 0.06],
+        }}
+        transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+        style={{
+          position: 'absolute', top: '-300px', left: '50%', transform: 'translateX(-50%)',
+          width: '900px', height: '900px',
+          background: 'radial-gradient(circle, rgba(204,255,0,0.15) 0%, rgba(204,255,0,0.03) 40%, transparent 70%)',
+          pointerEvents: 'none', filter: 'blur(40px)',
+        }}
+      />
+      {/* Secondary ambient glow */}
+      <motion.div
+        animate={{
+          scale: [1.1, 1, 1.1],
+          opacity: [0.03, 0.07, 0.03],
+        }}
+        transition={{ repeat: Infinity, duration: 6, ease: 'easeInOut', delay: 2 }}
+        style={{
+          position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)',
+          width: '600px', height: '600px',
+          background: 'radial-gradient(circle, rgba(204,255,0,0.1) 0%, transparent 60%)',
+          pointerEvents: 'none', filter: 'blur(60px)',
+        }}
+      />
+      {/* Floating particles */}
+      {Array.from({ length: 20 }).map((_, i) => (
+        <motion.div
+          key={i}
+          animate={{
+            y: [0, -30 - Math.random() * 40, 0],
+            x: [0, (Math.random() - 0.5) * 30, 0],
+            opacity: [0, 0.4 + Math.random() * 0.3, 0],
+          }}
+          transition={{
+            repeat: Infinity,
+            duration: 3 + Math.random() * 4,
+            delay: Math.random() * 5,
+            ease: 'easeInOut',
+          }}
+          style={{
+            position: 'absolute',
+            left: `${10 + Math.random() * 80}%`,
+            top: `${20 + Math.random() * 60}%`,
+            width: `${2 + Math.random() * 3}px`,
+            height: `${2 + Math.random() * 3}px`,
+            borderRadius: '50%',
+            background: '#CCFF00',
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
+// ─── Slot Machine Line (slides in from below with clip) ───
+function SlotLine({ text, delay, style: extraStyle }: { text: string; delay: number; style?: React.CSSProperties }) {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShow(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
+
+  return (
+    <div style={{ overflow: 'hidden', height: extraStyle?.fontSize ? `calc(${extraStyle.fontSize} * 1.6)` : '48px' }}>
+      <AnimatePresence>
+        {show && (
+          <motion.p
+            initial={{ y: '120%', opacity: 0 }}
+            animate={{ y: '0%', opacity: 1 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              margin: 0,
+              lineHeight: 1.5,
+              ...extraStyle,
+            }}
+          >
+            {text}
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -96,45 +255,31 @@ function WaitlistForm({ source = 'hero' }: { source?: string }) {
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '480px', position: 'relative', flexWrap: 'wrap', justifyContent: 'center' }}>
       <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="your@email.com"
-        required
+        type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+        placeholder="your@email.com" required
         style={{
           flex: '1 1 240px', padding: '16px 20px', borderRadius: '12px',
-          border: '1px solid rgba(255,255,255,0.1)',
-          background: 'rgba(255,255,255,0.05)',
-          color: '#fff', fontSize: '16px', outline: 'none',
-          transition: 'border-color 0.2s',
+          border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)',
+          color: '#fff', fontSize: '16px', outline: 'none', transition: 'border-color 0.2s',
         }}
         onFocus={(e) => e.target.style.borderColor = 'rgba(204,255,0,0.4)'}
         onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
       />
-      <button
-        type="submit"
-        disabled={status === 'loading'}
+      <button type="submit" disabled={status === 'loading'}
         style={{
-          padding: '16px 28px', borderRadius: '12px',
-          background: '#CCFF00', color: '#000',
-          fontWeight: 700, fontSize: '15px', letterSpacing: '0.5px',
-          whiteSpace: 'nowrap',
-          opacity: status === 'loading' ? 0.7 : 1,
-          transition: 'all 0.2s',
+          padding: '16px 28px', borderRadius: '12px', background: '#CCFF00', color: '#000',
+          fontWeight: 700, fontSize: '15px', letterSpacing: '0.5px', whiteSpace: 'nowrap',
+          opacity: status === 'loading' ? 0.7 : 1, transition: 'all 0.2s',
         }}
-      >
-        {status === 'loading' ? 'JOINING...' : 'JOIN WAITLIST'}
-      </button>
+      >{status === 'loading' ? 'JOINING...' : 'JOIN WAITLIST'}</button>
       {status === 'error' && (
-        <p style={{ color: '#ff4444', fontSize: '13px', width: '100%', textAlign: 'center', marginTop: '4px' }}>
-          {errorMsg}
-        </p>
+        <p style={{ color: '#ff4444', fontSize: '13px', width: '100%', textAlign: 'center', marginTop: '4px' }}>{errorMsg}</p>
       )}
     </form>
   );
 }
 
-// ─── Spots Counter ───
+// ─── Spots Counter (with animated countdown) ───
 function SpotsCounter() {
   const [count, setCount] = useState<number | null>(null);
 
@@ -155,13 +300,21 @@ function SpotsCounter() {
       display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center',
       fontFamily: 'var(--mono)', fontSize: '13px', color: 'var(--white-40)', letterSpacing: '0.5px',
     }}>
-      <span style={{
-        width: '8px', height: '8px', borderRadius: '50%',
-        background: remaining !== null && remaining < 100 ? '#ff4444' : '#CCFF00',
-        boxShadow: `0 0 8px ${remaining !== null && remaining < 100 ? '#ff4444' : 'rgba(204,255,0,0.5)'}`,
-      }} />
+      <motion.span
+        animate={{ boxShadow: ['0 0 4px rgba(204,255,0,0.5)', '0 0 12px rgba(204,255,0,0.8)', '0 0 4px rgba(204,255,0,0.5)'] }}
+        transition={{ repeat: Infinity, duration: 2 }}
+        style={{
+          width: '8px', height: '8px', borderRadius: '50%',
+          background: remaining !== null && remaining < 100 ? '#ff4444' : '#CCFF00',
+          display: 'inline-block',
+        }}
+      />
       {remaining !== null ? (
-        <span><strong style={{ color: '#CCFF00', fontWeight: 700 }}>{remaining}</strong> of 1,000 spots remaining</span>
+        <span>
+          <strong style={{ color: '#CCFF00', fontWeight: 700 }}>
+            <AnimatedCounter target={remaining} duration={1500} />
+          </strong> of 1,000 spots remaining
+        </span>
       ) : (
         <span>Loading...</span>
       )}
@@ -184,20 +337,16 @@ function BenefitCard({ icon, title, desc }: { icon: string; title: string; desc:
   );
 }
 
-// ─── Pricing Tier (updated — no tag, with payback) ───
+// ─── Pricing Tier ───
 function PricingTier({ name, price, spots, payback }: { name: string; price: number; spots: string; payback: string }) {
   return (
     <div style={{
-      flex: '1 1 240px', maxWidth: '300px',
-      padding: '28px', borderRadius: '16px',
-      background: 'var(--bg-card)', border: '1px solid var(--border)',
-      position: 'relative',
+      flex: '1 1 240px', maxWidth: '300px', padding: '28px', borderRadius: '16px',
+      background: 'var(--bg-card)', border: '1px solid var(--border)', position: 'relative',
     }}>
       <p style={{ fontFamily: 'var(--mono)', fontSize: '12px', letterSpacing: '2px', color: 'var(--white-40)', textTransform: 'uppercase', marginBottom: '16px' }}>{name}</p>
       <div style={{ marginBottom: '12px' }}>
-        <span style={{ fontSize: '42px', fontWeight: 800, color: 'var(--white-90)', letterSpacing: '-1px' }}>
-          ${price}
-        </span>
+        <span style={{ fontSize: '42px', fontWeight: 800, color: 'var(--white-90)', letterSpacing: '-1px' }}>${price}</span>
         <span style={{ fontSize: '14px', color: 'var(--white-20)', marginLeft: '4px' }}>one-time</span>
       </div>
       <p style={{ fontSize: '13px', color: 'var(--white-40)', marginBottom: '16px' }}>{spots}</p>
@@ -211,13 +360,9 @@ function WhyNowCard({ text, index }: { text: string; index: number }) {
   return (
     <div style={{
       padding: '28px', borderRadius: '16px',
-      background: 'var(--bg-card)', border: '1px solid var(--border)',
-      textAlign: 'left',
+      background: 'var(--bg-card)', border: '1px solid var(--border)', textAlign: 'left',
     }}>
-      <div style={{
-        fontFamily: 'var(--mono)', fontSize: '11px', letterSpacing: '2px',
-        color: '#CCFF00', marginBottom: '14px', textTransform: 'uppercase',
-      }}>0{index + 1}</div>
+      <div style={{ fontFamily: 'var(--mono)', fontSize: '11px', letterSpacing: '2px', color: '#CCFF00', marginBottom: '14px', textTransform: 'uppercase' }}>0{index + 1}</div>
       <p style={{ fontSize: '15px', lineHeight: 1.7, color: 'var(--white-60)' }}>{text}</p>
     </div>
   );
@@ -227,20 +372,13 @@ function WhyNowCard({ text, index }: { text: string; index: number }) {
 function FAQItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div
-      style={{
-        borderBottom: '1px solid var(--border)', padding: '20px 0', cursor: 'pointer',
-      }}
-      onClick={() => setOpen(!open)}
-    >
+    <div style={{ borderBottom: '1px solid var(--border)', padding: '20px 0', cursor: 'pointer' }} onClick={() => setOpen(!open)}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--white-90)', margin: 0 }}>{q}</p>
         <span style={{ color: '#CCFF00', fontSize: '20px', transition: 'transform 0.2s', transform: open ? 'rotate(45deg)' : 'none' }}>+</span>
       </div>
       {open && (
-        <motion.p
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
+        <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
           style={{ fontSize: '14px', lineHeight: 1.7, color: 'var(--white-40)', marginTop: '12px', marginBottom: 0 }}
         >{a}</motion.p>
       )}
@@ -248,12 +386,10 @@ function FAQItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-// ─── Full FUEGO PADEL Logo (official SVG with text as paths) ───
+// ─── Full FUEGO PADEL Logo ───
 function FuegoLogo({ height = 48 }: { height?: number }) {
   return (
-    <img
-      src="/fuego-padel-logo.svg"
-      alt="FUEGO PADEL"
+    <img src="/fuego-padel-logo.svg" alt="FUEGO PADEL"
       style={{ height, width: 'auto', display: 'block' }}
     />
   );
@@ -263,6 +399,11 @@ function FuegoLogo({ height = 48 }: { height?: number }) {
 //  MAIN APP — 8 SECTIONS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export default function App() {
+  // Punch line sizes
+  const punchSize = 'clamp(22px, 4vw, 36px)';
+  const midSize = '16px';
+  const closerSize = 'clamp(18px, 3vw, 22px)';
+
   return (
     <div style={{ overflow: 'hidden' }}>
 
@@ -270,17 +411,13 @@ export default function App() {
       <section style={{
         minHeight: '100vh', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
-        padding: '60px 24px', position: 'relative',
+        padding: '60px 24px', position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{
-          position: 'absolute', top: '-200px', left: '50%', transform: 'translateX(-50%)',
-          width: '800px', height: '600px',
-          background: 'radial-gradient(ellipse, rgba(204,255,0,0.06) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }} />
+        <HeroBackground />
 
+        {/* Logo + IGNITE */}
         <FadeIn>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', marginBottom: '32px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', marginBottom: '40px' }}>
             <FuegoLogo height={112} />
             <span style={{
               fontFamily: 'var(--mono)', fontSize: '13px', fontWeight: 700,
@@ -289,28 +426,53 @@ export default function App() {
           </div>
         </FadeIn>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', marginBottom: '32px', maxWidth: '650px', textAlign: 'center' }}>
-          {[
-            { text: 'Your weaknesses tackled.', style: 'bold' },
-            { text: 'Your progress tracked.', style: 'bold' },
-            { text: 'Your match score analyzed in real time.', style: 'bold' },
-            { text: 'Your ranking optimized through 3D performance matrix.', style: 'normal' },
-            { text: 'AI that watches your game and tells you where to position, which shot to play, and how to get better.', style: 'normal' },
-            { text: 'This is how you become the best player on your court.', style: 'accent' },
-          ].map((line, i) => (
-            <FadeIn key={i} delay={0.1 + i * 0.2}>
-              <p style={{
-                margin: 0,
-                fontSize: line.style === 'normal' ? '16px' : '20px',
-                fontWeight: line.style === 'bold' || line.style === 'accent' ? 700 : 400,
-                color: line.style === 'bold' ? '#FFFFFF' : line.style === 'accent' ? '#CCFF00' : 'var(--white-40)',
-                lineHeight: 1.6,
-              }}>{line.text}</p>
-            </FadeIn>
-          ))}
+        {/* ── Punch Lines — Slot Machine Reveal ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginBottom: '24px', maxWidth: '750px', textAlign: 'center' }}>
+          <SlotLine text="Your weaknesses tackled." delay={600} style={{
+            fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px',
+          }} />
+          <SlotLine text="Your progress tracked." delay={1100} style={{
+            fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px',
+          }} />
+          <SlotLine text="Your match score analyzed in real time." delay={1600} style={{
+            fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px',
+          }} />
         </div>
 
-        <FadeIn delay={1.4}>
+        {/* ── Middle lines — Fade in as group ── */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2.4, duration: 0.8 }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginBottom: '24px', maxWidth: '650px', textAlign: 'center' }}
+        >
+          <p style={{ margin: 0, fontSize: midSize, color: 'var(--white-40)', lineHeight: 1.7 }}>
+            Your ranking optimized through 3D performance matrix.
+          </p>
+          <p style={{ margin: 0, fontSize: midSize, color: 'var(--white-40)', lineHeight: 1.7 }}>
+            AI that watches your game and tells you where to position, which shot to play, and how to get better.
+          </p>
+        </motion.div>
+
+        {/* ── Closer — Typewriter with glow ── */}
+        <div style={{ marginBottom: '40px', maxWidth: '650px', textAlign: 'center' }}>
+          <Typewriter
+            text="This is how you become the best player on your court."
+            delay={3400}
+            speed={35}
+            style={{
+              margin: 0, fontSize: closerSize, fontWeight: 700, color: '#CCFF00', lineHeight: 1.5,
+              textShadow: '0 0 20px rgba(204,255,0,0.3), 0 0 40px rgba(204,255,0,0.15)',
+            }}
+          />
+        </div>
+
+        {/* ── Founding Members Program ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 5.5, duration: 0.7 }}
+        >
           <h1 style={{
             fontSize: 'clamp(32px, 6vw, 64px)', fontWeight: 800,
             color: '#fff', lineHeight: 1.1, letterSpacing: '-2px',
@@ -319,9 +481,14 @@ export default function App() {
             Founding Members<br />
             <span style={{ color: '#CCFF00' }}>Program</span>
           </h1>
-        </FadeIn>
+        </motion.div>
 
-        <FadeIn delay={1.5}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 6.0, duration: 0.6 }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+        >
           <p style={{
             fontSize: 'clamp(16px, 2.5vw, 20px)', color: 'var(--white-40)',
             maxWidth: '520px', textAlign: 'center', lineHeight: 1.6, marginBottom: '40px',
@@ -329,30 +496,29 @@ export default function App() {
             Be one of 1,000 Founding Members.<br />
             Lifetime Premium. One payment. Never again.
           </p>
-        </FadeIn>
 
-        <FadeIn delay={1.6}>
           <WaitlistForm source="hero" />
-        </FadeIn>
 
-        <FadeIn delay={1.7}>
           <div style={{ marginTop: '24px' }}><SpotsCounter /></div>
-        </FadeIn>
 
-        <FadeIn delay={1.8}>
           <p style={{
             marginTop: '20px', fontSize: '11px', color: 'var(--white-20)',
             textAlign: 'center', maxWidth: '400px', lineHeight: 1.5,
           }}>
             We'll only use your email to notify you when IGNITE opens. No spam. Unsubscribe anytime.
           </p>
-        </FadeIn>
+        </motion.div>
 
+        {/* Scroll indicator — pulsing chevron */}
         <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-          style={{ position: 'absolute', bottom: '40px', color: 'var(--white-20)', fontSize: '24px' }}
-        >↓</motion.div>
+          animate={{ y: [0, 10, 0], opacity: [0.3, 0.7, 0.3] }}
+          transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+          style={{ position: 'absolute', bottom: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#CCFF00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </motion.div>
       </section>
 
       {/* ━━━ 2. WHAT IS FUEGO PADEL ━━━ */}

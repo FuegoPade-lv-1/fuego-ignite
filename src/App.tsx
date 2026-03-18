@@ -442,7 +442,7 @@ export default function App() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '48px' }}>
           <FadeIn delay={0.05}><WhyNowCard index={0} text="Millions of padel players step on court every day with no data, no feedback, no way to track their game. We're changing that." /></FadeIn>
-          <FadeIn delay={0.10}><WhyNowCard index={1} text="FUEGO PADEL launches April 2026. The first 1,000 members get in at a price that will never exist again." /></FadeIn>
+          <FadeIn delay={0.10}><WhyNowCard index={1} text="FUEGO PADEL launches Summer 2026. The first 1,000 members get in at a price that will never exist again." /></FadeIn>
           <FadeIn delay={0.15}><WhyNowCard index={2} text="Premium costs $7.90/month. That's $94.80 per year. In 2 years, $189. In 3 years, $284. Founding Members pay once. Do the math." /></FadeIn>
         </div>
       </section>
@@ -488,7 +488,7 @@ export default function App() {
             textAlign: 'center', marginTop: '32px', fontSize: '14px',
             color: 'var(--white-40)', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6,
           }}>
-            The average padel player stays active for 3+ years. That's $284 in subscriptions, or one payment of $79-149. Your call.
+            The average padel player stays active for 6+ years. That's $284 in subscriptions, or one payment of $79-149. Your call.
           </p>
         </FadeIn>
 
@@ -509,7 +509,7 @@ export default function App() {
             <FAQItem q="What is FUEGO PADEL?" a="Your AI-powered padel app. Real-time scoring, performance stats, player rankings and a global network of athletes." />
             <FAQItem q="Is this a subscription?" a="No. One payment, lifetime access. No monthly fees, no renewals, no hidden costs." />
             <FAQItem q="What does Lifetime mean?" a="Access for the lifetime of the FUEGO PADEL platform. As long as FUEGO exists, your access exists." />
-            <FAQItem q="When does the app launch?" a="April 2026. Founding Members get early access before everyone else." />
+            <FAQItem q="When does the app launch?" a="Summer 2026. Founding Members get early access before everyone else." />
             <FAQItem q="What if I stop playing?" a="Your Founding Member status stays forever. Come back anytime. Your number, your badge, your access will be waiting." />
             <FAQItem q="Can I transfer my membership?" a="No. Your Founding Member number is personal and non-transferable." />
           </div>

@@ -8,7 +8,6 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
   const inView = useInView(ref, { once: true, amount: 0.1 });
   const [forceShow, setForceShow] = useState(false);
 
-  // Fallback: force show after delay + 1.5s in case IntersectionObserver fails
   useEffect(() => {
     const timer = setTimeout(() => setForceShow(true), (delay + 1.5) * 1000);
     return () => clearTimeout(timer);
@@ -28,6 +27,26 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
   );
 }
 
+// ─── Section Label ───
+function SectionLabel({ text }: { text: string }) {
+  return (
+    <p style={{
+      fontFamily: 'var(--mono)', fontSize: '12px', letterSpacing: '3px',
+      color: '#CCFF00', textTransform: 'uppercase', marginBottom: '12px', textAlign: 'center',
+    }}>{text}</p>
+  );
+}
+
+// ─── Section Headline ───
+function SectionHeadline({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 style={{
+      fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700,
+      color: '#fff', textAlign: 'center', marginBottom: '16px', letterSpacing: '-1px',
+    }}>{children}</h2>
+  );
+}
+
 // ─── Waitlist Form ───
 function WaitlistForm({ source = 'hero' }: { source?: string }) {
   const [email, setEmail] = useState('');
@@ -37,19 +56,14 @@ function WaitlistForm({ source = 'hero' }: { source?: string }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes('@')) return;
-
     setStatus('loading');
     try {
       const { error } = await supabase
         .from('ignite_waitlist')
         .insert({ email: email.toLowerCase().trim(), source });
-
       if (error) {
-        if (error.code === '23505') {
-          setStatus('success');
-        } else {
-          throw error;
-        }
+        if (error.code === '23505') setStatus('success');
+        else throw error;
       } else {
         setStatus('success');
       }
@@ -170,42 +184,71 @@ function BenefitCard({ icon, title, desc }: { icon: string; title: string; desc:
   );
 }
 
-// ─── Pricing Tier ───
-function PricingTier({ name, price, spots, highlighted = false, tag }: { name: string; price: number; spots: string; highlighted?: boolean; tag?: string }) {
+// ─── Pricing Tier (updated — no tag, with payback) ───
+function PricingTier({ name, price, spots, payback }: { name: string; price: number; spots: string; payback: string }) {
   return (
     <div style={{
       flex: '1 1 240px', maxWidth: '300px',
-      padding: highlighted ? '32px 28px' : '28px',
-      borderRadius: '16px',
-      background: highlighted ? 'rgba(204, 255, 0, 0.05)' : 'var(--bg-card)',
-      border: `1px solid ${highlighted ? 'rgba(204, 255, 0, 0.25)' : 'var(--border)'}`,
+      padding: '28px', borderRadius: '16px',
+      background: 'var(--bg-card)', border: '1px solid var(--border)',
       position: 'relative',
-      transform: highlighted ? 'scale(1.03)' : 'none',
     }}>
-      {tag && (
-        <div style={{
-          position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)',
-          padding: '4px 14px', borderRadius: '20px',
-          background: '#CCFF00', color: '#000',
-          fontSize: '11px', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase',
-          whiteSpace: 'nowrap',
-        }}>
-          {tag}
-        </div>
-      )}
       <p style={{ fontFamily: 'var(--mono)', fontSize: '12px', letterSpacing: '2px', color: 'var(--white-40)', textTransform: 'uppercase', marginBottom: '16px' }}>{name}</p>
       <div style={{ marginBottom: '12px' }}>
-        <span style={{ fontSize: '42px', fontWeight: 800, color: highlighted ? '#CCFF00' : 'var(--white-90)', letterSpacing: '-1px' }}>
+        <span style={{ fontSize: '42px', fontWeight: 800, color: 'var(--white-90)', letterSpacing: '-1px' }}>
           ${price}
         </span>
         <span style={{ fontSize: '14px', color: 'var(--white-20)', marginLeft: '4px' }}>one-time</span>
       </div>
-      <p style={{ fontSize: '13px', color: 'var(--white-40)' }}>{spots}</p>
+      <p style={{ fontSize: '13px', color: 'var(--white-40)', marginBottom: '16px' }}>{spots}</p>
+      <p style={{ fontSize: '12px', color: '#CCFF00', fontFamily: 'var(--mono)', letterSpacing: '0.3px', lineHeight: 1.5 }}>{payback}</p>
     </div>
   );
 }
 
-// ─── FuegoBall SVG (real logo from app) ───
+// ─── Why Now Card ───
+function WhyNowCard({ text, index }: { text: string; index: number }) {
+  return (
+    <div style={{
+      padding: '28px', borderRadius: '16px',
+      background: 'var(--bg-card)', border: '1px solid var(--border)',
+      textAlign: 'left',
+    }}>
+      <div style={{
+        fontFamily: 'var(--mono)', fontSize: '11px', letterSpacing: '2px',
+        color: '#CCFF00', marginBottom: '14px', textTransform: 'uppercase',
+      }}>0{index + 1}</div>
+      <p style={{ fontSize: '15px', lineHeight: 1.7, color: 'var(--white-60)' }}>{text}</p>
+    </div>
+  );
+}
+
+// ─── FAQ Item ───
+function FAQItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      style={{
+        borderBottom: '1px solid var(--border)', padding: '20px 0', cursor: 'pointer',
+      }}
+      onClick={() => setOpen(!open)}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--white-90)', margin: 0 }}>{q}</p>
+        <span style={{ color: '#CCFF00', fontSize: '20px', transition: 'transform 0.2s', transform: open ? 'rotate(45deg)' : 'none' }}>+</span>
+      </div>
+      {open && (
+        <motion.p
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          style={{ fontSize: '14px', lineHeight: 1.7, color: 'var(--white-40)', marginTop: '12px', marginBottom: 0 }}
+        >{a}</motion.p>
+      )}
+    </div>
+  );
+}
+
+// ─── FuegoBall SVG ───
 function FuegoBall({ size = 40 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 264.71 312.73" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -229,28 +272,23 @@ function FuegoLogo({ ballSize = 32, textSize = '24px' }: { ballSize?: number; te
       <FuegoBall size={ballSize} />
       <span style={{
         fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-        fontWeight: 800,
-        fontSize: textSize,
-        letterSpacing: '-0.5px',
-        lineHeight: 1.2,
-        display: 'inline-block',
-        whiteSpace: 'nowrap',
-        color: '#FFFFFF',
+        fontWeight: 800, fontSize: textSize, letterSpacing: '-0.5px',
+        lineHeight: 1.2, display: 'inline-block', whiteSpace: 'nowrap', color: '#FFFFFF',
       }}>
-        FUEGO{' '}
-        <span style={{ color: '#CCFF00' }}>PADEL</span>
+        FUEGO{' '}<span style={{ color: '#CCFF00' }}>PADEL</span>
       </span>
     </div>
   );
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  MAIN APP
+//  MAIN APP — 8 SECTIONS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export default function App() {
   return (
     <div style={{ overflow: 'hidden' }}>
-      {/* ━━━ HERO ━━━ */}
+
+      {/* ━━━ 1. HERO ━━━ */}
       <section style={{
         minHeight: '100vh', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
@@ -269,9 +307,7 @@ export default function App() {
             <span style={{
               fontFamily: 'var(--mono)', fontSize: '13px', fontWeight: 700,
               letterSpacing: '4px', color: '#CCFF00', textTransform: 'uppercase',
-            }}>
-              IGNITE
-            </span>
+            }}>IGNITE</span>
           </div>
         </FadeIn>
 
@@ -282,7 +318,7 @@ export default function App() {
             maxWidth: '700px', textAlign: 'center', marginBottom: '20px',
           }}>
             Founding Members<br />
-            <span style={{ color: '#CCFF00' }}>Programme</span>
+            <span style={{ color: '#CCFF00' }}>Program</span>
           </h1>
         </FadeIn>
 
@@ -304,6 +340,15 @@ export default function App() {
           <div style={{ marginTop: '24px' }}><SpotsCounter /></div>
         </FadeIn>
 
+        <FadeIn delay={0.5}>
+          <p style={{
+            marginTop: '20px', fontSize: '11px', color: 'var(--white-20)',
+            textAlign: 'center', maxWidth: '400px', lineHeight: 1.5,
+          }}>
+            We'll only use your email to notify you when IGNITE opens. No spam. Unsubscribe anytime.
+          </p>
+        </FadeIn>
+
         <motion.div
           animate={{ y: [0, 8, 0] }}
           transition={{ repeat: Infinity, duration: 2 }}
@@ -311,40 +356,56 @@ export default function App() {
         >↓</motion.div>
       </section>
 
-      {/* ━━━ WHAT YOU GET ━━━ */}
+      {/* ━━━ 2. WHAT IS FUEGO PADEL ━━━ */}
+      <section style={{ padding: '100px 24px', maxWidth: '800px', margin: '0 auto' }}>
+        <FadeIn>
+          <SectionLabel text="What is FUEGO PADEL" />
+          <SectionHeadline>AI-Powered Scores. Stats. Rankings.</SectionHeadline>
+          <p style={{
+            color: 'var(--white-40)', textAlign: 'center', fontSize: '16px',
+            maxWidth: '600px', margin: '0 auto', lineHeight: 1.7,
+          }}>
+            FUEGO PADEL is your padel app. Real-time scoring, performance stats, player rankings and a global network of athletes — all in one place. Available on iOS, Android and Web.
+          </p>
+        </FadeIn>
+      </section>
+
+      {/* ━━━ 3. WHY NOW ━━━ */}
       <section style={{ padding: '100px 24px', maxWidth: '1000px', margin: '0 auto' }}>
         <FadeIn>
-          <p style={{
-            fontFamily: 'var(--mono)', fontSize: '12px', letterSpacing: '3px',
-            color: '#CCFF00', textTransform: 'uppercase', marginBottom: '12px', textAlign: 'center',
-          }}>What you get</p>
-          <h2 style={{
-            fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700,
-            color: '#fff', textAlign: 'center', marginBottom: '60px', letterSpacing: '-1px',
-          }}>More than an app. A movement.</h2>
+          <SectionLabel text="Why Now" />
+          <SectionHeadline>Be part of something from day one.</SectionHeadline>
         </FadeIn>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-          <FadeIn delay={0.05}><BenefitCard icon="♾️" title="Lifetime Premium Access" desc="Every feature. Every update. Forever. No subscriptions, no renewals — you're in for life." /></FadeIn>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '48px' }}>
+          <FadeIn delay={0.05}><WhyNowCard index={0} text="Hundreds of millions of athletes play every day with no data, no feedback, no way to track their game. We're changing that." /></FadeIn>
+          <FadeIn delay={0.10}><WhyNowCard index={1} text="FUEGO PADEL launches April 2026. The first 1,000 members get in at a price that will never exist again." /></FadeIn>
+          <FadeIn delay={0.15}><WhyNowCard index={2} text="Premium costs $7.90/month. That's $94.80 per year. In 2 years, $189. In 3 years, $284. Founding Members pay once. Do the math." /></FadeIn>
+        </div>
+      </section>
+
+      {/* ━━━ 4. BENEFITS ━━━ */}
+      <section style={{ padding: '100px 24px', maxWidth: '1000px', margin: '0 auto' }}>
+        <FadeIn>
+          <SectionLabel text="What you get" />
+          <SectionHeadline>More than an app. A movement.</SectionHeadline>
+        </FadeIn>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '48px' }}>
+          <FadeIn delay={0.05}><BenefitCard icon="♾️" title="Lifetime Premium Access" desc="Every feature. Every update. Forever. No subscriptions, no renewals — you're in for life. Premium is $7.90/month. That's $94.80/year. Founding Members pay once. Forever." /></FadeIn>
           <FadeIn delay={0.10}><BenefitCard icon="🏆" title="Founding Member Badge" desc="A permanent badge on your profile. Everyone will know you believed from day one." /></FadeIn>
           <FadeIn delay={0.15}><BenefitCard icon="#️⃣" title="Unique Number #0001–#1000" desc="Your personal Founding Member number. Permanently reserved. Non-transferable." /></FadeIn>
           <FadeIn delay={0.20}><BenefitCard icon="🚀" title="Early Access" desc="Be the first to test new features before anyone else. Shape the product with direct feedback." /></FadeIn>
           <FadeIn delay={0.25}><BenefitCard icon="🎽" title="Exclusive Gear" desc="Limited-edition FUEGO merch only available to Founding Members. Wear the fire." /></FadeIn>
-          <FadeIn delay={0.30}><BenefitCard icon="🤝" title="Direct Line to CEO & CTO" desc="Private channel with Darmas and Marco. Your voice shapes FUEGO's future." /></FadeIn>
+          <FadeIn delay={0.30}><BenefitCard icon="🤝" title="Direct Line" desc="Private channel with the founding team. Your voice shapes FUEGO's future." /></FadeIn>
         </div>
       </section>
 
-      {/* ━━━ PRICING PREVIEW ━━━ */}
+      {/* ━━━ 5. PRICING ━━━ */}
       <section style={{ padding: '100px 24px', maxWidth: '900px', margin: '0 auto' }}>
         <FadeIn>
-          <p style={{
-            fontFamily: 'var(--mono)', fontSize: '12px', letterSpacing: '3px',
-            color: '#CCFF00', textTransform: 'uppercase', marginBottom: '12px', textAlign: 'center',
-          }}>Pricing</p>
-          <h2 style={{
-            fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700,
-            color: '#fff', textAlign: 'center', marginBottom: '16px', letterSpacing: '-1px',
-          }}>One payment. Lifetime access.</h2>
+          <SectionLabel text="Pricing" />
+          <SectionHeadline>One payment. Lifetime access.</SectionHeadline>
           <p style={{
             color: 'var(--white-40)', textAlign: 'center', fontSize: '16px',
             maxWidth: '500px', margin: '0 auto 50px',
@@ -352,19 +413,47 @@ export default function App() {
         </FadeIn>
 
         <FadeIn delay={0.1}>
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <PricingTier name="Early Ignite" price={79} spots="First 200 spots" />
-            <PricingTier name="Ignite" price={99} spots="Spots 201–700" highlighted tag="Most Popular" />
-            <PricingTier name="Late Ignite" price={149} spots="Final 300 spots" />
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'stretch', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <PricingTier name="Early Ignite" price={79} spots="First 200 spots — lowest price ever" payback="Pays for itself in 11 months. Everything after that is free." />
+            <PricingTier name="Ignite" price={99} spots="Spots 201–700" payback="Pays for itself in 13 months. Everything after that is free." />
+            <PricingTier name="Late Ignite" price={149} spots="Final 300 spots" payback="Pays for itself in 19 months. Everything after that is free." />
           </div>
         </FadeIn>
 
         <FadeIn delay={0.2}>
+          <p style={{
+            textAlign: 'center', marginTop: '32px', fontSize: '14px',
+            color: 'var(--white-40)', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6,
+          }}>
+            The average padel player stays active for 3+ years. That's $284 in subscriptions — or one payment of $79–149. Your call.
+          </p>
+        </FadeIn>
+
+        <FadeIn delay={0.25}>
           <div style={{ textAlign: 'center', marginTop: '32px' }}><SpotsCounter /></div>
         </FadeIn>
       </section>
 
-      {/* ━━━ WAITLIST CTA ━━━ */}
+      {/* ━━━ 6. FAQ ━━━ */}
+      <section style={{ padding: '100px 24px', maxWidth: '700px', margin: '0 auto' }}>
+        <FadeIn>
+          <SectionLabel text="FAQ" />
+          <SectionHeadline>Questions? We got you.</SectionHeadline>
+        </FadeIn>
+
+        <FadeIn delay={0.1}>
+          <div style={{ marginTop: '40px' }}>
+            <FAQItem q="What is FUEGO PADEL?" a="Your AI-powered padel app. Real-time scoring, performance stats, player rankings and a global network of athletes." />
+            <FAQItem q="Is this a subscription?" a="No. One payment, lifetime access. No monthly fees, no renewals, no hidden costs." />
+            <FAQItem q="What does Lifetime mean?" a="Access for the lifetime of the FUEGO PADEL platform. As long as FUEGO exists, your access exists." />
+            <FAQItem q="When does the app launch?" a="April 2026. Founding Members get early access before everyone else." />
+            <FAQItem q="What if I stop playing?" a="Your Founding Member status stays forever. Come back anytime — your number, your badge, your access will be waiting." />
+            <FAQItem q="Can I transfer my membership?" a="No. Your Founding Member number is personal and non-transferable." />
+          </div>
+        </FadeIn>
+      </section>
+
+      {/* ━━━ 7. FINAL CTA ━━━ */}
       <section style={{
         padding: '100px 24px', display: 'flex', flexDirection: 'column',
         alignItems: 'center', position: 'relative',
@@ -377,10 +466,7 @@ export default function App() {
         }} />
 
         <FadeIn>
-          <h2 style={{
-            fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700,
-            color: '#fff', textAlign: 'center', marginBottom: '16px', letterSpacing: '-1px',
-          }}>Ready to ignite?</h2>
+          <SectionHeadline>Ready to ignite?</SectionHeadline>
           <p style={{
             color: 'var(--white-40)', textAlign: 'center', marginBottom: '40px', fontSize: '16px',
           }}>Join the waitlist. Secure your spot. Get notified when we launch.</p>
@@ -391,13 +477,14 @@ export default function App() {
         </FadeIn>
       </section>
 
-      {/* ━━━ FOOTER ━━━ */}
+      {/* ━━━ 8. FOOTER ━━━ */}
       <footer style={{
         padding: '40px 24px', borderTop: '1px solid var(--border)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px',
       }}>
         <FuegoLogo ballSize={28} textSize="18px" />
-        <div style={{ display: 'flex', gap: '24px', fontSize: '13px' }}>
+        <div style={{ display: 'flex', gap: '24px', fontSize: '13px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <a href="/terms">IGNITE Terms</a>
           <a href="https://app.fuego-padel.com/terms" target="_blank" rel="noopener">Terms</a>
           <a href="https://app.fuego-padel.com/privacy" target="_blank" rel="noopener">Privacy</a>
           <a href="https://app.fuego-padel.com" target="_blank" rel="noopener">App</a>

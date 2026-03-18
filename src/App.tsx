@@ -290,6 +290,15 @@ export default function App() {
         </FadeIn>
 
         <FadeIn delay={0.1}>
+          <p style={{
+            fontSize: 'clamp(15px, 2vw, 18px)', color: 'var(--white-40)',
+            maxWidth: '600px', textAlign: 'center', lineHeight: 1.7, marginBottom: '32px',
+          }}>
+            Your weaknesses tackled. Your progress tracked. Your match score analyzed in real time. Your ranking optimized through 3D performance matrix. AI that watches your game and tells you where to position, which shot to play, and how to get better. This is how you become the best player on your court.
+          </p>
+        </FadeIn>
+
+        <FadeIn delay={0.15}>
           <h1 style={{
             fontSize: 'clamp(32px, 6vw, 64px)', fontWeight: 800,
             color: '#fff', lineHeight: 1.1, letterSpacing: '-2px',
@@ -356,7 +365,7 @@ export default function App() {
         </FadeIn>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '48px' }}>
-          <FadeIn delay={0.05}><WhyNowCard index={0} text="Hundreds of millions of athletes play every day with no data, no feedback, no way to track their game. We're changing that." /></FadeIn>
+          <FadeIn delay={0.05}><WhyNowCard index={0} text="Millions of athletes play every day with no data, no feedback, no way to track their game. We're changing that." /></FadeIn>
           <FadeIn delay={0.10}><WhyNowCard index={1} text="FUEGO PADEL launches April 2026. The first 1,000 members get in at a price that will never exist again." /></FadeIn>
           <FadeIn delay={0.15}><WhyNowCard index={2} text="Premium costs $7.90/month. That's $94.80 per year. In 2 years, $189. In 3 years, $284. Founding Members pay once. Do the math." /></FadeIn>
         </div>

@@ -289,16 +289,28 @@ export default function App() {
           </div>
         </FadeIn>
 
-        <FadeIn delay={0.1}>
-          <p style={{
-            fontSize: 'clamp(15px, 2vw, 18px)', color: 'var(--white-40)',
-            maxWidth: '600px', textAlign: 'center', lineHeight: 1.7, marginBottom: '32px',
-          }}>
-            Your weaknesses tackled. Your progress tracked. Your match score analyzed in real time. Your ranking optimized through 3D performance matrix. AI that watches your game and tells you where to position, which shot to play, and how to get better. This is how you become the best player on your court.
-          </p>
-        </FadeIn>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', marginBottom: '32px', maxWidth: '650px', textAlign: 'center' }}>
+          {[
+            { text: 'Your weaknesses tackled.', style: 'bold' },
+            { text: 'Your progress tracked.', style: 'bold' },
+            { text: 'Your match score analyzed in real time.', style: 'bold' },
+            { text: 'Your ranking optimized through 3D performance matrix.', style: 'normal' },
+            { text: 'AI that watches your game and tells you where to position, which shot to play, and how to get better.', style: 'normal' },
+            { text: 'This is how you become the best player on your court.', style: 'accent' },
+          ].map((line, i) => (
+            <FadeIn key={i} delay={0.1 + i * 0.2}>
+              <p style={{
+                margin: 0,
+                fontSize: line.style === 'normal' ? '16px' : '20px',
+                fontWeight: line.style === 'bold' || line.style === 'accent' ? 700 : 400,
+                color: line.style === 'bold' ? '#FFFFFF' : line.style === 'accent' ? '#CCFF00' : 'var(--white-40)',
+                lineHeight: 1.6,
+              }}>{line.text}</p>
+            </FadeIn>
+          ))}
+        </div>
 
-        <FadeIn delay={0.15}>
+        <FadeIn delay={1.4}>
           <h1 style={{
             fontSize: 'clamp(32px, 6vw, 64px)', fontWeight: 800,
             color: '#fff', lineHeight: 1.1, letterSpacing: '-2px',
@@ -309,7 +321,7 @@ export default function App() {
           </h1>
         </FadeIn>
 
-        <FadeIn delay={0.2}>
+        <FadeIn delay={1.5}>
           <p style={{
             fontSize: 'clamp(16px, 2.5vw, 20px)', color: 'var(--white-40)',
             maxWidth: '520px', textAlign: 'center', lineHeight: 1.6, marginBottom: '40px',
@@ -319,15 +331,15 @@ export default function App() {
           </p>
         </FadeIn>
 
-        <FadeIn delay={0.3}>
+        <FadeIn delay={1.6}>
           <WaitlistForm source="hero" />
         </FadeIn>
 
-        <FadeIn delay={0.4}>
+        <FadeIn delay={1.7}>
           <div style={{ marginTop: '24px' }}><SpotsCounter /></div>
         </FadeIn>
 
-        <FadeIn delay={0.5}>
+        <FadeIn delay={1.8}>
           <p style={{
             marginTop: '20px', fontSize: '11px', color: 'var(--white-20)',
             textAlign: 'center', maxWidth: '400px', lineHeight: 1.5,

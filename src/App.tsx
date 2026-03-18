@@ -27,47 +27,6 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
   );
 }
 
-// ─── Typewriter Effect ───
-function Typewriter({ text, delay = 0, speed = 30, style }: { text: string; delay?: number; speed?: number; style?: React.CSSProperties }) {
-  const [displayed, setDisplayed] = useState('');
-  const [started, setStarted] = useState(false);
-  const [done, setDone] = useState(false);
-
-  useEffect(() => {
-    const startTimer = setTimeout(() => setStarted(true), delay);
-    return () => clearTimeout(startTimer);
-  }, [delay]);
-
-  useEffect(() => {
-    if (!started) return;
-    let i = 0;
-    const interval = setInterval(() => {
-      i++;
-      setDisplayed(text.slice(0, i));
-      if (i >= text.length) {
-        clearInterval(interval);
-        setDone(true);
-      }
-    }, speed);
-    return () => clearInterval(interval);
-  }, [started, text, speed]);
-
-  if (!started) return <p style={{ ...style, opacity: 0 }}>{text}</p>;
-
-  return (
-    <p style={style}>
-      {displayed}
-      {!done && (
-        <motion.span
-          animate={{ opacity: [1, 0] }}
-          transition={{ repeat: Infinity, duration: 0.6 }}
-          style={{ display: 'inline-block', width: '2px', height: '1em', background: '#CCFF00', marginLeft: '2px', verticalAlign: 'text-bottom' }}
-        />
-      )}
-    </p>
-  );
-}
-
 // ─── Animated Counter (counts down from 1000 to target) ───
 function AnimatedCounter({ target, duration = 1500 }: { target: number; duration?: number }) {
   const [value, setValue] = useState(1000);

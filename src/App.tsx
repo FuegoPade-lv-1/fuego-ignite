@@ -488,7 +488,7 @@ export default function App() {
             textAlign: 'center', marginTop: '32px', fontSize: '14px',
             color: 'var(--white-40)', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6,
           }}>
-            The average padel player stays active for 6+ years. That's $284 in subscriptions, or one payment of $79-149. Your call.
+            The average padel player stays active for 6+ years. That's $569 in subscriptions, or one payment of $79-149. Your call.
           </p>
         </FadeIn>
 

@@ -308,7 +308,7 @@ export default function App() {
   // Punch line sizes
   const punchSize = 'clamp(22px, 4vw, 36px)';
   const midSize = '16px';
-  const closerSize = 'clamp(18px, 3vw, 22px)';
+  const closerSize = 'clamp(16px, 2.5vw, 20px)';
 
   return (
     <div style={{ overflow: 'hidden' }}>
@@ -353,7 +353,7 @@ export default function App() {
           style={{ marginBottom: '16px', maxWidth: '600px', textAlign: 'center' }}
         >
           <p style={{ margin: 0, fontSize: midSize, color: 'var(--white-40)', lineHeight: 1.7 }}>
-            AI that tells you where to position, which shot to play, and how to win.
+            AI that watches your padel game and tells you where to position, which shot to play, and how to win.
           </p>
         </motion.div>
 
@@ -428,7 +428,7 @@ export default function App() {
             color: 'var(--white-40)', textAlign: 'center', fontSize: '16px',
             maxWidth: '600px', margin: '0 auto', lineHeight: 1.7,
           }}>
-            FUEGO PADEL is your padel app. Real-time scoring, performance stats, player rankings and a global network of athletes — all in one place. Available on iOS, Android and Web.
+            FUEGO PADEL is your padel app. Real-time scoring, performance stats, player rankings and a global network of athletes, all in one place. Available on iOS, Android and Web.
           </p>
         </FadeIn>
       </section>
@@ -441,7 +441,7 @@ export default function App() {
         </FadeIn>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '48px' }}>
-          <FadeIn delay={0.05}><WhyNowCard index={0} text="Millions of athletes play every day with no data, no feedback, no way to track their game. We're changing that." /></FadeIn>
+          <FadeIn delay={0.05}><WhyNowCard index={0} text="Millions of padel players step on court every day with no data, no feedback, no way to track their game. We're changing that." /></FadeIn>
           <FadeIn delay={0.10}><WhyNowCard index={1} text="FUEGO PADEL launches April 2026. The first 1,000 members get in at a price that will never exist again." /></FadeIn>
           <FadeIn delay={0.15}><WhyNowCard index={2} text="Premium costs $7.90/month. That's $94.80 per year. In 2 years, $189. In 3 years, $284. Founding Members pay once. Do the math." /></FadeIn>
         </div>
@@ -455,9 +455,9 @@ export default function App() {
         </FadeIn>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '48px' }}>
-          <FadeIn delay={0.05}><BenefitCard icon="♾️" title="Lifetime Premium Access" desc="Every feature. Every update. Forever. No subscriptions, no renewals — you're in for life. Premium is $7.90/month. That's $94.80/year. Founding Members pay once. Forever." /></FadeIn>
+          <FadeIn delay={0.05}><BenefitCard icon="♾️" title="Lifetime Premium Access" desc="Every feature. Every update. Forever. No subscriptions, no renewals, you're in for life. Premium is $7.90/month. That's $94.80/year. Founding Members pay once. Forever." /></FadeIn>
           <FadeIn delay={0.10}><BenefitCard icon="🏆" title="Founding Member Badge" desc="A permanent badge on your profile. Everyone will know you believed from day one." /></FadeIn>
-          <FadeIn delay={0.15}><BenefitCard icon="#️⃣" title="Unique Number #0001–#1000" desc="Your personal Founding Member number. Permanently reserved. Non-transferable." /></FadeIn>
+          <FadeIn delay={0.15}><BenefitCard icon="#️⃣" title="Unique Number #0001-#1000" desc="Your personal Founding Member number. Permanently reserved. Non-transferable." /></FadeIn>
           <FadeIn delay={0.20}><BenefitCard icon="🚀" title="Early Access" desc="Be the first to test new features before anyone else. Shape the product with direct feedback." /></FadeIn>
           <FadeIn delay={0.25}><BenefitCard icon="🎽" title="Exclusive Gear" desc="Limited-edition FUEGO merch only available to Founding Members. Wear the fire." /></FadeIn>
           <FadeIn delay={0.30}><BenefitCard icon="🤝" title="Direct Line" desc="Private channel with the founding team. Your voice shapes FUEGO's future." /></FadeIn>
@@ -477,8 +477,8 @@ export default function App() {
 
         <FadeIn delay={0.1}>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'stretch', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <PricingTier name="Early Ignite" price={79} spots="First 200 spots — lowest price ever" payback="Pays for itself in 11 months. Everything after that is free." />
-            <PricingTier name="Ignite" price={99} spots="Spots 201–700" payback="Pays for itself in 13 months. Everything after that is free." />
+            <PricingTier name="Early Ignite" price={79} spots="First 200 spots. Lowest price ever." payback="Pays for itself in 11 months. Everything after that is free." />
+            <PricingTier name="Ignite" price={99} spots="Spots 201-700" payback="Pays for itself in 13 months. Everything after that is free." />
             <PricingTier name="Late Ignite" price={149} spots="Final 300 spots" payback="Pays for itself in 19 months. Everything after that is free." />
           </div>
         </FadeIn>
@@ -488,7 +488,7 @@ export default function App() {
             textAlign: 'center', marginTop: '32px', fontSize: '14px',
             color: 'var(--white-40)', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6,
           }}>
-            The average padel player stays active for 3+ years. That's $284 in subscriptions — or one payment of $79–149. Your call.
+            The average padel player stays active for 3+ years. That's $284 in subscriptions, or one payment of $79-149. Your call.
           </p>
         </FadeIn>
 
@@ -510,7 +510,7 @@ export default function App() {
             <FAQItem q="Is this a subscription?" a="No. One payment, lifetime access. No monthly fees, no renewals, no hidden costs." />
             <FAQItem q="What does Lifetime mean?" a="Access for the lifetime of the FUEGO PADEL platform. As long as FUEGO exists, your access exists." />
             <FAQItem q="When does the app launch?" a="April 2026. Founding Members get early access before everyone else." />
-            <FAQItem q="What if I stop playing?" a="Your Founding Member status stays forever. Come back anytime — your number, your badge, your access will be waiting." />
+            <FAQItem q="What if I stop playing?" a="Your Founding Member status stays forever. Come back anytime. Your number, your badge, your access will be waiting." />
             <FAQItem q="Can I transfer my membership?" a="No. Your Founding Member number is personal and non-transferable." />
           </div>
         </FadeIn>

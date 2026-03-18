@@ -281,7 +281,7 @@ export default function App() {
 
         <FadeIn>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', marginBottom: '32px' }}>
-            <FuegoLogo height={56} />
+            <FuegoLogo height={112} />
             <span style={{
               fontFamily: 'var(--mono)', fontSize: '13px', fontWeight: 700,
               letterSpacing: '4px', color: '#CCFF00', textTransform: 'uppercase',
@@ -460,7 +460,7 @@ export default function App() {
         padding: '40px 24px', borderTop: '1px solid var(--border)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px',
       }}>
-        <FuegoLogo height={36} />
+        <FuegoLogo height={48} />
         <div style={{ display: 'flex', gap: '24px', fontSize: '13px', flexWrap: 'wrap', justifyContent: 'center' }}>
           <a href="/terms">IGNITE Terms</a>
           <a href="https://app.fuego-padel.com/terms" target="_blank" rel="noopener">Terms</a>

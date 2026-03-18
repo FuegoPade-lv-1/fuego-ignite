@@ -92,66 +92,13 @@ function AnimatedCounter({ target, duration = 1500 }: { target: number; duration
   return <>{value}</>;
 }
 
-// ─── Pulsing Background ───
+// ─── Hero Background — diffuse fog glow ───
 function HeroBackground() {
   return (
-    <>
-      {/* Primary pulsing glow */}
-      <motion.div
-        animate={{
-          scale: [1, 1.15, 1],
-          opacity: [0.06, 0.12, 0.06],
-        }}
-        transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-        style={{
-          position: 'absolute', top: '-300px', left: '50%', transform: 'translateX(-50%)',
-          width: '900px', height: '900px',
-          background: 'radial-gradient(circle, rgba(204,255,0,0.15) 0%, rgba(204,255,0,0.03) 40%, transparent 70%)',
-          pointerEvents: 'none', filter: 'blur(40px)',
-        }}
-      />
-      {/* Secondary ambient glow */}
-      <motion.div
-        animate={{
-          scale: [1.1, 1, 1.1],
-          opacity: [0.03, 0.07, 0.03],
-        }}
-        transition={{ repeat: Infinity, duration: 6, ease: 'easeInOut', delay: 2 }}
-        style={{
-          position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)',
-          width: '600px', height: '600px',
-          background: 'radial-gradient(circle, rgba(204,255,0,0.1) 0%, transparent 60%)',
-          pointerEvents: 'none', filter: 'blur(60px)',
-        }}
-      />
-      {/* Floating particles */}
-      {Array.from({ length: 20 }).map((_, i) => (
-        <motion.div
-          key={i}
-          animate={{
-            y: [0, -30 - Math.random() * 40, 0],
-            x: [0, (Math.random() - 0.5) * 30, 0],
-            opacity: [0, 0.4 + Math.random() * 0.3, 0],
-          }}
-          transition={{
-            repeat: Infinity,
-            duration: 3 + Math.random() * 4,
-            delay: Math.random() * 5,
-            ease: 'easeInOut',
-          }}
-          style={{
-            position: 'absolute',
-            left: `${10 + Math.random() * 80}%`,
-            top: `${20 + Math.random() * 60}%`,
-            width: `${2 + Math.random() * 3}px`,
-            height: `${2 + Math.random() * 3}px`,
-            borderRadius: '50%',
-            background: '#CCFF00',
-            pointerEvents: 'none',
-          }}
-        />
-      ))}
-    </>
+    <div style={{
+      position: 'absolute', inset: 0, pointerEvents: 'none',
+      background: 'radial-gradient(ellipse 80% 40% at 50% 40%, rgba(204,255,0,0.08) 0%, transparent 70%)',
+    }} />
   );
 }
 
@@ -434,44 +381,36 @@ export default function App() {
           <SlotLine text="Your progress tracked." delay={1100} style={{
             fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px',
           }} />
-          <SlotLine text="Your match score analyzed in real time." delay={1600} style={{
+          <SlotLine text="Every match analyzed in real time." delay={1600} style={{
             fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px',
           }} />
         </div>
 
-        {/* ── Middle lines — Fade in as group ── */}
+        {/* ── Middle line — Fade in ── */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 2.4, duration: 0.8 }}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginBottom: '24px', maxWidth: '650px', textAlign: 'center' }}
+          transition={{ delay: 2.2, duration: 0.8 }}
+          style={{ marginBottom: '16px', maxWidth: '600px', textAlign: 'center' }}
         >
           <p style={{ margin: 0, fontSize: midSize, color: 'var(--white-40)', lineHeight: 1.7 }}>
-            Your ranking optimized through 3D performance matrix.
-          </p>
-          <p style={{ margin: 0, fontSize: midSize, color: 'var(--white-40)', lineHeight: 1.7 }}>
-            AI that watches your game and tells you where to position, which shot to play, and how to get better.
+            AI that tells you where to position, which shot to play, and how to win.
           </p>
         </motion.div>
 
-        {/* ── Closer — Typewriter with glow ── */}
+        {/* ── Closer — Slot Machine with glow ── */}
         <div style={{ marginBottom: '40px', maxWidth: '650px', textAlign: 'center' }}>
-          <Typewriter
-            text="This is how you become the best player on your court."
-            delay={3400}
-            speed={35}
-            style={{
-              margin: 0, fontSize: closerSize, fontWeight: 700, color: '#CCFF00', lineHeight: 1.5,
-              textShadow: '0 0 20px rgba(204,255,0,0.3), 0 0 40px rgba(204,255,0,0.15)',
-            }}
-          />
+          <SlotLine text="This is how you become the best on your court." delay={2800} style={{
+            fontSize: closerSize, fontWeight: 700, color: '#CCFF00',
+            textShadow: '0 0 20px rgba(204,255,0,0.3), 0 0 40px rgba(204,255,0,0.15)',
+          }} />
         </div>
 
         {/* ── Founding Members Program ── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 5.5, duration: 0.7 }}
+          transition={{ delay: 3.8, duration: 0.7 }}
         >
           <h1 style={{
             fontSize: 'clamp(32px, 6vw, 64px)', fontWeight: 800,
@@ -486,7 +425,7 @@ export default function App() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 6.0, duration: 0.6 }}
+          transition={{ delay: 4.2, duration: 0.6 }}
           style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
         >
           <p style={{

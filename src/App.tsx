@@ -1,6 +1,36 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, createContext, useContext } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { supabase } from './lib/supabase';
+
+// ─── Constants ───
+const COUNTER_OFFSET = 300;
+const TOTAL_SPOTS = 1000;
+
+// ─── Waitlist Context (shared count + sold-out state) ───
+const WaitlistContext = createContext<{ remaining: number | null; isSoldOut: boolean }>({ remaining: null, isSoldOut: false });
+
+function WaitlistProvider({ children }: { children: React.ReactNode }) {
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      const { count: total } = await supabase
+        .from('ignite_waitlist')
+        .select('*', { count: 'exact', head: true });
+      setCount(total ?? 0);
+    };
+    fetchCount();
+  }, []);
+
+  const remaining = count !== null ? Math.max(0, TOTAL_SPOTS - (count + COUNTER_OFFSET)) : null;
+  const isSoldOut = remaining !== null && remaining <= 0;
+
+  return (
+    <WaitlistContext.Provider value={{ remaining, isSoldOut }}>
+      {children}
+    </WaitlistContext.Provider>
+  );
+}
 
 // ─── Animated Section Wrapper ───
 function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -112,8 +142,9 @@ function SectionHeadline({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ─── Waitlist Form ───
+// ─── Waitlist Form (hides when sold out) ───
 function WaitlistForm({ source = 'hero' }: { source?: string }) {
+  const { isSoldOut } = useContext(WaitlistContext);
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -122,10 +153,11 @@ function WaitlistForm({ source = 'hero' }: { source?: string }) {
     e.preventDefault();
     if (!email || !email.includes('@')) return;
     setStatus('loading');
+    const finalSource = isSoldOut ? 'sold_out_notify' : source;
     try {
       const { error } = await supabase
         .from('ignite_waitlist')
-        .insert({ email: email.toLowerCase().trim(), source });
+        .insert({ email: email.toLowerCase().trim(), source: finalSource });
       if (error) {
         if (error.code === '23505') setStatus('success');
         else throw error;
@@ -152,7 +184,7 @@ function WaitlistForm({ source = 'hero' }: { source?: string }) {
       >
         <span style={{ fontSize: '20px' }}>🔥</span>
         <span style={{ color: '#CCFF00', fontWeight: 600, fontSize: '15px' }}>
-          You're on the list. We'll be in touch.
+          {isSoldOut ? "You're on the notification list." : "You're on the list. We'll be in touch."}
         </span>
       </motion.div>
     );
@@ -177,7 +209,7 @@ function WaitlistForm({ source = 'hero' }: { source?: string }) {
           fontWeight: 700, fontSize: '15px', letterSpacing: '0.5px', whiteSpace: 'nowrap',
           opacity: status === 'loading' ? 0.7 : 1, transition: 'all 0.2s',
         }}
-      >{status === 'loading' ? 'JOINING...' : 'JOIN WAITLIST'}</button>
+      >{status === 'loading' ? 'JOINING...' : (isSoldOut ? 'NOTIFY ME' : 'JOIN WAITLIST')}</button>
       {status === 'error' && (
         <p style={{ color: '#ff4444', fontSize: '13px', width: '100%', textAlign: 'center', marginTop: '4px' }}>{errorMsg}</p>
       )}
@@ -185,21 +217,9 @@ function WaitlistForm({ source = 'hero' }: { source?: string }) {
   );
 }
 
-// ─── Spots Counter (with animated countdown) ───
+// ─── Spots Counter (uses shared context with offset) ───
 function SpotsCounter() {
-  const [count, setCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    const fetchCount = async () => {
-      const { count: total } = await supabase
-        .from('ignite_waitlist')
-        .select('*', { count: 'exact', head: true });
-      setCount(total ?? 0);
-    };
-    fetchCount();
-  }, []);
-
-  const remaining = count !== null ? Math.max(0, 1000 - count) : null;
+  const { remaining, isSoldOut } = useContext(WaitlistContext);
 
   return (
     <div style={{
@@ -211,13 +231,13 @@ function SpotsCounter() {
         transition={{ repeat: Infinity, duration: 2 }}
         style={{
           width: '8px', height: '8px', borderRadius: '50%',
-          background: remaining !== null && remaining < 100 ? '#ff4444' : '#CCFF00',
+          background: isSoldOut || (remaining !== null && remaining < 100) ? '#ff4444' : '#CCFF00',
           display: 'inline-block',
         }}
       />
       {remaining !== null ? (
         <span>
-          <strong style={{ color: '#CCFF00', fontWeight: 700 }}>
+          <strong style={{ color: isSoldOut ? '#ff4444' : '#CCFF00', fontWeight: 700 }}>
             <AnimatedCounter target={remaining} duration={1500} />
           </strong> of 1,000 spots remaining
         </span>
@@ -305,6 +325,16 @@ function FuegoLogo({ height = 48 }: { height?: number }) {
 //  MAIN APP — 8 SECTIONS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export default function App() {
+  return (
+    <WaitlistProvider>
+      <AppContent />
+    </WaitlistProvider>
+  );
+}
+
+function AppContent() {
+  const { isSoldOut } = useContext(WaitlistContext);
+
   // Punch line sizes
   const punchSize = 'clamp(22px, 4vw, 36px)';
   const midSize = '16px';
@@ -365,20 +395,31 @@ export default function App() {
           }} />
         </div>
 
-        {/* ── Founding Members Program ── */}
+        {/* ── Founding Members Program / Sold Out ── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 3.8, duration: 0.7 }}
         >
-          <h1 style={{
-            fontSize: 'clamp(32px, 6vw, 64px)', fontWeight: 800,
-            color: '#fff', lineHeight: 1.1, letterSpacing: '-2px',
-            maxWidth: '700px', textAlign: 'center', marginBottom: '20px',
-          }}>
-            Founding Members<br />
-            <span style={{ color: '#CCFF00' }}>Program</span>
-          </h1>
+          {isSoldOut ? (
+            <h1 style={{
+              fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 800,
+              color: '#ff4444', lineHeight: 1.1, letterSpacing: '-2px',
+              maxWidth: '700px', textAlign: 'center', marginBottom: '20px',
+              textTransform: 'uppercase',
+            }}>
+              FUEGO IGNITE IS SOLD OUT.
+            </h1>
+          ) : (
+            <h1 style={{
+              fontSize: 'clamp(32px, 6vw, 64px)', fontWeight: 800,
+              color: '#fff', lineHeight: 1.1, letterSpacing: '-2px',
+              maxWidth: '700px', textAlign: 'center', marginBottom: '20px',
+            }}>
+              Founding Members<br />
+              <span style={{ color: '#CCFF00' }}>Program</span>
+            </h1>
+          )}
         </motion.div>
 
         <motion.div
@@ -387,24 +428,36 @@ export default function App() {
           transition={{ delay: 4.2, duration: 0.6 }}
           style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
         >
-          <p style={{
-            fontSize: 'clamp(16px, 2.5vw, 20px)', color: 'var(--white-40)',
-            maxWidth: '520px', textAlign: 'center', lineHeight: 1.6, marginBottom: '40px',
-          }}>
-            Be one of 1,000 Founding Members.<br />
-            Lifetime Premium. One payment. Never again.
-          </p>
+          {isSoldOut ? (
+            <p style={{
+              fontSize: 'clamp(16px, 2.5vw, 20px)', color: 'var(--white-40)',
+              maxWidth: '520px', textAlign: 'center', lineHeight: 1.6, marginBottom: '40px',
+            }}>
+              All 1,000 Founding Member spots have been claimed.<br />
+              Join the notification list for future openings.
+            </p>
+          ) : (
+            <p style={{
+              fontSize: 'clamp(16px, 2.5vw, 20px)', color: 'var(--white-40)',
+              maxWidth: '520px', textAlign: 'center', lineHeight: 1.6, marginBottom: '40px',
+            }}>
+              Be one of 1,000 Founding Members.<br />
+              Lifetime Premium. One payment. Never again.
+            </p>
+          )}
 
           <WaitlistForm source="hero" />
 
           <div style={{ marginTop: '24px' }}><SpotsCounter /></div>
 
-          <p style={{
-            marginTop: '20px', fontSize: '11px', color: 'var(--white-20)',
-            textAlign: 'center', maxWidth: '400px', lineHeight: 1.5,
-          }}>
-            We'll only use your email to notify you when IGNITE opens. No spam. Unsubscribe anytime.
-          </p>
+          {!isSoldOut && (
+            <p style={{
+              marginTop: '20px', fontSize: '11px', color: 'var(--white-20)',
+              textAlign: 'center', maxWidth: '400px', lineHeight: 1.5,
+            }}>
+              We'll only use your email to notify you when IGNITE opens. No spam. Unsubscribe anytime.
+            </p>
+          )}
         </motion.div>
 
         {/* Scroll indicator — pulsing chevron */}

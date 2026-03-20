@@ -495,11 +495,12 @@ const DNA_QUESTIONS = [
     weight: 0.10,
   },
   {
-    id: 'weakest_shot',
-    label: 'What is your weakest shot?',
-    type: 'select' as const,
-    options: ['Bandeja', 'Vibora', 'Smash', 'Lob', 'Volley', 'Chiquita', 'Bajada', 'Wall shot'],
-    weight: 0.05,
+    id: 'weakest_shots',
+    label: 'What are your weakest shots?',
+    type: 'multi' as const,
+    maxSelect: 3,
+    options: ['Forehand', 'Backhand', 'Volley', 'Smash', 'Lob', 'Serve', 'Bandeja', 'Vibora', 'Drop Shot'],
+    weight: 0.08,
   },
   {
     id: 'power_precision',
@@ -526,11 +527,12 @@ const DNA_QUESTIONS = [
     weight: 0.10,
   },
   {
-    id: 'weakest_area',
+    id: 'focus_areas',
     label: 'What area of your game needs the most work?',
-    type: 'select' as const,
-    options: ['Shot technique', 'Court positioning', 'Fitness / endurance', 'Mental toughness', 'Strategy / tactics', 'Communication with partner'],
-    weight: 0.05,
+    type: 'multi' as const,
+    maxSelect: 2,
+    options: ['Power', 'Control', 'Net Play', 'Defense', 'Endurance', 'Mental', 'Consistency', 'Positioning'],
+    weight: 0.07,
   },
   {
     id: 'physicality',
@@ -563,11 +565,23 @@ function calculateDNA(answers: Record<string, any>): { score: number; radar: Rec
       return idx >= 0 ? idx / (q.options!.length - 1) : 0.5;
     }
     if (q.type === 'multi') {
-      // More advanced shots picked = higher score
-      const advancedShots = ['Vibora', 'Bajada', 'Bandeja', 'Smash'];
-      const picks = val as string[];
-      const advCount = picks.filter(s => advancedShots.includes(s)).length;
-      return advCount / 2;
+      if (qId === 'strongest_shots') {
+        const advancedShots = ['Vibora', 'Bajada', 'Bandeja', 'Smash'];
+        const picks = val as string[];
+        const advCount = picks.filter(s => advancedShots.includes(s)).length;
+        return advCount / 2;
+      }
+      if (qId === 'weakest_shots') {
+        // Fewer weak shots picked = higher score (inverse)
+        const picks = val as string[];
+        return 1 - (picks.length / 3);
+      }
+      if (qId === 'focus_areas') {
+        // Fewer areas = more focused = higher base score
+        const picks = val as string[];
+        return 1 - (picks.length / 2) * 0.5;
+      }
+      return 0.5;
     }
     return 0.5;
   };
@@ -590,17 +604,49 @@ function calculateDNA(answers: Record<string, any>): { score: number; radar: Rec
   const ambition = normalize('ambition');
   const strongest = normalize('strongest_shots');
 
+  // Weakness penalty map: weakest shots influence specific radar axes
+  const weakShots: string[] = answers['weakest_shots'] || [];
+  const shotToAxis: Record<string, string[]> = {
+    Forehand: ['PWR', 'CTL'], Backhand: ['CTL', 'DEF'], Volley: ['NET'],
+    Smash: ['PWR', 'NET'], Lob: ['DEF', 'CTL'], Serve: ['PWR'],
+    Bandeja: ['NET', 'CTL'], Vibora: ['NET', 'PWR'], 'Drop Shot': ['CTL', 'NET'],
+  };
+  const weakPenalty: Record<string, number> = { PWR: 0, CTL: 0, NET: 0, DEF: 0, END: 0, MNT: 0 };
+  for (const shot of weakShots) {
+    for (const axis of (shotToAxis[shot] || [])) {
+      weakPenalty[axis] += 0.4; // Each weakness penalizes related axes
+    }
+  }
+
+  // Focus area penalty map
+  const focusAreas: string[] = answers['focus_areas'] || [];
+  const areaToAxis: Record<string, string> = {
+    Power: 'PWR', Control: 'CTL', 'Net Play': 'NET', Defense: 'DEF',
+    Endurance: 'END', Mental: 'MNT', Consistency: 'CTL', Positioning: 'DEF',
+  };
+  for (const area of focusAreas) {
+    const axis = areaToAxis[area];
+    if (axis) weakPenalty[axis] += 0.5;
+  }
+
+  const clamp = (v: number) => Math.round(Math.min(10, Math.max(1, v)) * 10) / 10;
+
   const radar = {
-    PWR: Math.round(Math.min(10, Math.max(1, ((1 - pp) * 0.4 + style * 0.3 + phys * 0.2 + strongest * 0.1) * 9 + 1)) * 10) / 10,
-    CTL: Math.round(Math.min(10, Math.max(1, (pp * 0.4 + (1 - style) * 0.3 + exp * 0.2 + freq * 0.1) * 9 + 1)) * 10) / 10,
-    NET: Math.round(Math.min(10, Math.max(1, (nb * 0.5 + strongest * 0.2 + exp * 0.2 + style * 0.1) * 9 + 1)) * 10) / 10,
-    DEF: Math.round(Math.min(10, Math.max(1, ((1 - style) * 0.4 + (1 - nb) * 0.3 + phys * 0.2 + mental * 0.1) * 9 + 1)) * 10) / 10,
-    END: Math.round(Math.min(10, Math.max(1, (phys * 0.5 + freq * 0.3 + ambition * 0.1 + exp * 0.1) * 9 + 1)) * 10) / 10,
-    MNT: Math.round(Math.min(10, Math.max(1, (mental * 0.5 + exp * 0.2 + ambition * 0.2 + freq * 0.1) * 9 + 1)) * 10) / 10,
+    PWR: clamp(((1 - pp) * 0.4 + style * 0.3 + phys * 0.2 + strongest * 0.1) * 9 + 1 - weakPenalty.PWR),
+    CTL: clamp((pp * 0.4 + (1 - style) * 0.3 + exp * 0.2 + freq * 0.1) * 9 + 1 - weakPenalty.CTL),
+    NET: clamp((nb * 0.5 + strongest * 0.2 + exp * 0.2 + style * 0.1) * 9 + 1 - weakPenalty.NET),
+    DEF: clamp(((1 - style) * 0.4 + (1 - nb) * 0.3 + phys * 0.2 + mental * 0.1) * 9 + 1 - weakPenalty.DEF),
+    END: clamp((phys * 0.5 + freq * 0.3 + ambition * 0.1 + exp * 0.1) * 9 + 1 - weakPenalty.END),
+    MNT: clamp((mental * 0.5 + exp * 0.2 + ambition * 0.2 + freq * 0.1) * 9 + 1 - weakPenalty.MNT),
   };
 
   return { score, radar };
 }
+
+// ─── Axis Display Names ───
+const AXIS_DISPLAY: Record<string, string> = {
+  PWR: 'Power', CTL: 'Control', NET: 'Net Play', DEF: 'Defense', END: 'Endurance', MNT: 'Mental',
+};
 
 // ─── Radar Chart SVG ───
 function RadarChart({ values, size = 320 }: { values: Record<string, number>; size?: number }) {
@@ -668,7 +714,7 @@ function RadarChart({ values, size = 320 }: { values: Record<string, number>; si
             fontFamily="var(--mono)"
             letterSpacing="0.5px"
           >
-            {axis}
+            {AXIS_DISPLAY[axis] || axis}
           </text>
         );
       })}
@@ -704,26 +750,30 @@ function DNAOption({
   label,
   selected,
   onClick,
+  disabled = false,
 }: {
   label: string;
   selected: boolean;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
       style={{
         padding: '10px 18px',
         borderRadius: '10px',
-        border: selected ? '1px solid #CCFF00' : '1px solid rgba(255,255,255,0.1)',
-        background: selected ? 'rgba(204,255,0,0.1)' : 'rgba(255,255,255,0.03)',
-        color: selected ? '#CCFF00' : 'rgba(255,255,255,0.6)',
+        border: selected ? '1px solid #CCFF00' : disabled ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(255,255,255,0.1)',
+        background: selected ? 'rgba(204,255,0,0.1)' : disabled ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)',
+        color: selected ? '#CCFF00' : disabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)',
         fontSize: '14px',
         fontWeight: selected ? 600 : 400,
-        cursor: 'pointer',
+        cursor: disabled ? 'not-allowed' : 'pointer',
         transition: 'all 0.2s',
         whiteSpace: 'nowrap',
+        opacity: disabled ? 0.5 : 1,
       }}
     >
       {label}
@@ -806,7 +856,7 @@ function PlayerDNASection() {
         return { ...prev, [id]: current.filter(o => o !== option) };
       }
       if (current.length >= maxSelect) {
-        return { ...prev, [id]: [...current.slice(1), option] };
+        return prev; // At max — ignore, buttons are disabled
       }
       return { ...prev, [id]: [...current, option] };
     });
@@ -818,7 +868,7 @@ function PlayerDNASection() {
       const val = answers[q.id];
       if (q.type === 'slider') return val !== undefined;
       if (q.type === 'select') return val !== undefined && val !== null;
-      if (q.type === 'multi') return Array.isArray(val) && val.length === q.maxSelect;
+      if (q.type === 'multi') return Array.isArray(val) && val.length >= 1 && val.length <= q.maxSelect!;
       return false;
     });
   }, [answers]);
@@ -843,6 +893,8 @@ function PlayerDNASection() {
           answers,
           score,
           radar_values: radar,
+          weakest_shots: answers['weakest_shots'] || [],
+          focus_areas: answers['focus_areas'] || [],
         });
       if (dnaError) throw dnaError;
 
@@ -867,14 +919,15 @@ function PlayerDNASection() {
       const radarEntries = Object.entries(radar);
       const strongest = radarEntries.reduce((a, b) => a[1] > b[1] ? a : b);
       const weakest = radarEntries.reduce((a, b) => a[1] < b[1] ? a : b);
-      const axisFullNames: Record<string, string> = { PWR: 'power game', CTL: 'control game', NET: 'net game', DEF: 'defense', END: 'endurance', MNT: 'mental game' };
-      let profileText = `Your ${axisFullNames[strongest[0]]} is your strongest asset at ${strongest[1].toFixed(1)}/10. `;
+      let profileText = `Your ${AXIS_DISPLAY[strongest[0]]} is your strongest asset at ${strongest[1].toFixed(1)}/10. `;
       if (score >= 7.0) profileText += 'You are an advanced player with a well-rounded game. ';
       else if (score >= 5.0) profileText += 'You have a solid foundation with clear strengths. ';
       else profileText += 'You are building your game and have great potential. ';
-      profileText += `Your ${axisFullNames[weakest[0]]} has the most room for growth. Players with your DNA typically score between ${Math.max(1, score - 0.8).toFixed(1)} and ${Math.min(10, score + 0.8).toFixed(1)} on the FUEGO Scale.`;
+      profileText += `Your ${AXIS_DISPLAY[weakest[0]]} has the most room for growth. Players with your DNA typically score between ${Math.max(1, score - 0.8).toFixed(1)} and ${Math.min(10, score + 0.8).toFixed(1)} on the FUEGO Scale.`;
 
-      const upgradeText = `Focus area: ${weakest[0]}. Players who improve their ${axisFullNames[weakest[0]]} gain 0.6 to 1.0 FUEGO Score points within 3 months.`;
+      const userFocusAreas: string[] = answers['focus_areas'] || [];
+      const focusLabel = userFocusAreas.length > 0 ? userFocusAreas.join(' & ') : AXIS_DISPLAY[weakest[0]];
+      const upgradeText = `Focus area: ${focusLabel}. Players who improve their ${focusLabel.toLowerCase()} gain 0.6 to 1.0 FUEGO Score points within 3 months.`;
 
       setResult({ score, radar, position, profileText, upgradeText });
       setPhase('result');
@@ -913,7 +966,6 @@ function PlayerDNASection() {
     const gaugePercent = Math.min(100, Math.max(0, (sc / 10) * 100));
 
     // Sorted breakdown bars
-    const axisNames: Record<string, string> = { PWR: 'Power Game', CTL: 'Control Game', NET: 'Net Game', DEF: 'Defense', END: 'Endurance', MNT: 'Mental Game' };
     const sortedRadar = Object.entries(result.radar).sort((a, b) => b[1] - a[1]);
     const strongestKey = sortedRadar[0][0];
     const weakestKey = sortedRadar[sortedRadar.length - 1][0];
@@ -1043,7 +1095,7 @@ function PlayerDNASection() {
                         letterSpacing: '1.5px',
                         color: isStrongest ? '#CCFF00' : isWeakest ? '#ff4444' : 'rgba(255,255,255,0.6)',
                         textTransform: 'uppercase',
-                      }}>{axisNames[key] || key}</span>
+                      }}>{AXIS_DISPLAY[key] || key}</span>
                       {isStrongest && (
                         <span style={{
                           fontSize: '9px',
@@ -1306,7 +1358,7 @@ function PlayerDNASection() {
           margin: '0 auto 48px',
           lineHeight: 1.7,
         }}>
-          Answer 11 questions. Get your Player DNA score, a personalized radar chart, and see where your game stands.
+          Answer {DNA_QUESTIONS.length} questions. Get your Player DNA score, a personalized radar chart, and see where your game stands.
         </p>
       </FadeIn>
 
@@ -1349,23 +1401,31 @@ function PlayerDNASection() {
                 </div>
               )}
 
-              {q.type === 'multi' && (
-                <div>
-                  <p style={{ fontSize: '12px', color: 'var(--white-40)', marginBottom: '10px', fontFamily: 'var(--mono)', letterSpacing: '0.5px' }}>
-                    Pick {q.maxSelect} {'\u2014'} {(answers[q.id] || []).length}/{q.maxSelect} selected
-                  </p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {q.options!.map(opt => (
-                      <DNAOption
-                        key={opt}
-                        label={opt}
-                        selected={(answers[q.id] || []).includes(opt)}
-                        onClick={() => toggleMulti(q.id, opt, q.maxSelect!)}
-                      />
-                    ))}
+              {q.type === 'multi' && (() => {
+                const picks: string[] = answers[q.id] || [];
+                const atMax = picks.length >= q.maxSelect!;
+                return (
+                  <div>
+                    <p style={{ fontSize: '12px', color: 'var(--white-40)', marginBottom: '10px', fontFamily: 'var(--mono)', letterSpacing: '0.5px' }}>
+                      Select up to {q.maxSelect} — {picks.length}/{q.maxSelect} selected
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {q.options!.map(opt => {
+                        const isSelected = picks.includes(opt);
+                        return (
+                          <DNAOption
+                            key={opt}
+                            label={opt}
+                            selected={isSelected}
+                            disabled={!isSelected && atMax}
+                            onClick={() => toggleMulti(q.id, opt, q.maxSelect!)}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {q.type === 'slider' && (
                 <DNASlider

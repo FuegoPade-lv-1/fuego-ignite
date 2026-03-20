@@ -553,16 +553,21 @@ const DNA_QUESTIONS = [
 
 // ─── Scoring & Radar Calculation ───
 function calculateDNA(answers: Record<string, any>): { score: number; radar: Record<string, number> } {
-  // Normalize each answer to 0-1
+  // Normalize each answer to 0-1 (with caps to flatten scoring curve)
   const normalize = (qId: string): number => {
     const q = DNA_QUESTIONS.find(q => q.id === qId);
     if (!q) return 0.5;
     const val = answers[qId];
     if (val === undefined || val === null) return 0.5;
-    if (q.type === 'slider') return val / 100;
+    if (q.type === 'slider') return Math.min(0.90, val / 100); // cap at 90%
     if (q.type === 'select') {
       const idx = q.options!.indexOf(val);
-      return idx >= 0 ? idx / (q.options!.length - 1) : 0.5;
+      let raw = idx >= 0 ? idx / (q.options!.length - 1) : 0.5;
+      // Experience: top option caps at 85%
+      if (qId === 'experience') raw = Math.min(0.85, raw);
+      // Ambition: top option caps at 80%
+      if (qId === 'ambition') raw = Math.min(0.80, raw);
+      return raw;
     }
     if (q.type === 'multi') {
       if (qId === 'strongest_shots') {
@@ -591,7 +596,8 @@ function calculateDNA(answers: Record<string, any>): { score: number; radar: Rec
   for (const q of DNA_QUESTIONS) {
     weightedSum += normalize(q.id) * q.weight;
   }
-  const score = Math.round((1 + weightedSum * 9) * 10) / 10; // 1.0-10.0
+  // Flatten curve: raw max ~0.87 * 7.5 + 1 = ~7.5-8.0 for top answers; 10.0 is unreachable
+  const score = Math.round((1 + weightedSum * 7.5) * 100) / 100;
 
   // Radar chart: 6 axes mapped from answers
   const exp = normalize('experience');
@@ -629,7 +635,7 @@ function calculateDNA(answers: Record<string, any>): { score: number; radar: Rec
     if (axis) weakPenalty[axis] += 0.5;
   }
 
-  const clamp = (v: number) => Math.round(Math.min(10, Math.max(1, v)) * 10) / 10;
+  const clamp = (v: number) => Math.round(Math.min(10, Math.max(1, v)) * 100) / 100;
 
   const radar = {
     PWR: clamp(((1 - pp) * 0.4 + style * 0.3 + phys * 0.2 + strongest * 0.1) * 9 + 1 - weakPenalty.PWR),
@@ -737,7 +743,7 @@ function RadarChart({ values, size = 320 }: { values: Record<string, number>; si
             fontWeight="700"
             fontFamily="var(--mono)"
           >
-            {values[axis].toFixed(1)}
+            {values[axis].toFixed(2)}
           </text>
         );
       })}
@@ -919,11 +925,11 @@ function PlayerDNASection() {
       const radarEntries = Object.entries(radar);
       const strongest = radarEntries.reduce((a, b) => a[1] > b[1] ? a : b);
       const weakest = radarEntries.reduce((a, b) => a[1] < b[1] ? a : b);
-      let profileText = `Your ${AXIS_DISPLAY[strongest[0]]} is your strongest asset at ${strongest[1].toFixed(1)}/10. `;
+      let profileText = `Your ${AXIS_DISPLAY[strongest[0]]} is your strongest asset at ${strongest[1].toFixed(2)}/10. `;
       if (score >= 7.0) profileText += 'You are an advanced player with a well-rounded game. ';
       else if (score >= 5.0) profileText += 'You have a solid foundation with clear strengths. ';
       else profileText += 'You are building your game and have great potential. ';
-      profileText += `Your ${AXIS_DISPLAY[weakest[0]]} has the most room for growth. Players with your DNA typically score between ${Math.max(1, score - 0.8).toFixed(1)} and ${Math.min(10, score + 0.8).toFixed(1)} on the FUEGO Scale.`;
+      profileText += `Your ${AXIS_DISPLAY[weakest[0]]} has the most room for growth. Players with your DNA typically score between ${Math.max(1, score - 0.8).toFixed(2)} and ${Math.min(10, score + 0.8).toFixed(2)} on the FUEGO Scale.`;
 
       const userFocusAreas: string[] = answers['focus_areas'] || [];
       const focusLabel = userFocusAreas.length > 0 ? userFocusAreas.join(' & ') : AXIS_DISPLAY[weakest[0]];
@@ -1002,7 +1008,7 @@ function PlayerDNASection() {
                 letterSpacing: '2px',
                 lineHeight: 1,
               }}>
-                {result.score.toFixed(1)}
+                {result.score.toFixed(2)}
               </div>
               <p style={{
                 fontFamily: 'var(--mono)',
@@ -1010,7 +1016,7 @@ function PlayerDNASection() {
                 color: 'rgba(255,255,255,0.3)',
                 marginTop: '8px',
                 letterSpacing: '1px',
-              }}>OUT OF 10.0</p>
+              }}>OUT OF 10.00</p>
 
               {/* Score Gauge Bar */}
               <div style={{
@@ -1030,8 +1036,8 @@ function PlayerDNASection() {
                 }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: '9px', color: 'rgba(255,255,255,0.2)' }}>1.0</span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: '9px', color: 'rgba(255,255,255,0.2)' }}>10.0</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: '9px', color: 'rgba(255,255,255,0.2)' }}>1.00</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: '9px', color: 'rgba(255,255,255,0.2)' }}>10.00</span>
               </div>
 
               {/* Tier + Percentile */}
@@ -1126,7 +1132,7 @@ function PlayerDNASection() {
                       fontSize: '12px',
                       color: isStrongest ? '#CCFF00' : isWeakest ? '#ff4444' : 'rgba(255,255,255,0.5)',
                       fontWeight: 700,
-                    }}>{val.toFixed(1)}</span>
+                    }}>{val.toFixed(2)}</span>
                   </div>
                   <div style={{
                     height: '8px',
@@ -1235,15 +1241,15 @@ function PlayerDNASection() {
             }}>YOUR FUEGO JOURNEY</p>
             <p style={{ fontSize: '14px', lineHeight: 1.8, color: 'var(--white-60)', marginBottom: '14px' }}>
               <strong style={{ color: 'rgba(255,255,255,0.8)' }}>Your starting point.</strong>{' '}
-              This is your Player DNA today — a snapshot of your game based on honest self-assessment. It's not a final verdict, it's a baseline. Every champion started somewhere, and now you know exactly where you stand.
+              This is your Player DNA today, a snapshot of your game based on honest self-assessment. It's not a final verdict, it's a baseline. Every champion started somewhere, and now you know exactly where you stand.
             </p>
             <p style={{ fontSize: '14px', lineHeight: 1.8, color: 'var(--white-60)', marginBottom: '14px' }}>
               <strong style={{ color: 'rgba(255,255,255,0.8)' }}>Your evolution.</strong>{' '}
-              Once FUEGO IGNITE launches, your DNA will evolve with every match. Real scores replace estimates. AI analysis sharpens your profile. Your radar shifts as you grow — and you'll see exactly how far you've come.
+              Once FUEGO IGNITE launches, your DNA will evolve with every match. Real scores replace estimates. AI analysis sharpens your profile. Your radar shifts as you grow, and you'll see exactly how far you've come.
             </p>
             <p style={{ fontSize: '14px', lineHeight: 1.8, color: 'var(--white-60)', margin: 0 }}>
               <strong style={{ color: 'rgba(255,255,255,0.8)' }}>The beginning of your journey.</strong>{' '}
-              Whether you're here to compete, improve, or just finally know where you stand — FUEGO gives you the tools to track your game like a pro. Your DNA is your story. Let's write the next chapter.
+              Whether you're here to compete, improve, or just finally know where you stand. FUEGO gives you the tools to track your game like a pro. Your DNA is your story. Let's write the next chapter.
             </p>
           </div>
         </FadeIn>
@@ -1349,7 +1355,7 @@ function PlayerDNASection() {
     <section data-section="dna" style={{ padding: '100px 24px', maxWidth: '700px', margin: '0 auto' }}>
       <FadeIn>
         <SectionLabel text="Player DNA Assessment" />
-        <SectionHeadline>Discover your padel identity.</SectionHeadline>
+        <SectionHeadline>See where your game actually stands.</SectionHeadline>
         <p style={{
           color: 'var(--white-40)',
           textAlign: 'center',
@@ -1358,7 +1364,7 @@ function PlayerDNASection() {
           margin: '0 auto 48px',
           lineHeight: 1.7,
         }}>
-          Answer {DNA_QUESTIONS.length} questions. Get your Player DNA score, a personalized radar chart, and see where your game stands.
+          {DNA_QUESTIONS.length} questions. Personalized radar chart. Your strengths, your gaps, your path to the next level.
         </p>
       </FadeIn>
 
@@ -1407,7 +1413,7 @@ function PlayerDNASection() {
                 return (
                   <div>
                     <p style={{ fontSize: '12px', color: 'var(--white-40)', marginBottom: '10px', fontFamily: 'var(--mono)', letterSpacing: '0.5px' }}>
-                      Select up to {q.maxSelect} — {picks.length}/{q.maxSelect} selected
+                      Select up to {q.maxSelect}, {picks.length}/{q.maxSelect} selected
                     </p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                       {q.options!.map(opt => {
@@ -1448,14 +1454,19 @@ function PlayerDNASection() {
             border: '1px solid rgba(34,34,34,1)',
           }}>
             <p style={{
-              fontFamily: 'var(--mono)',
-              fontSize: '12px',
-              letterSpacing: '3px',
-              color: '#CCFF00',
-              textTransform: 'uppercase',
+              fontSize: '20px',
+              fontWeight: 700,
+              color: '#fff',
               textAlign: 'center',
+              marginBottom: '8px',
+            }}>Your results are ready.</p>
+            <p style={{
+              fontSize: '14px',
+              color: 'var(--white-40)',
+              textAlign: 'center',
+              lineHeight: 1.6,
               marginBottom: '24px',
-            }}>GET YOUR RESULTS</p>
+            }}>Enter your email to unlock your Player DNA report. Your results will be saved and loaded into your FUEGO profile when we launch. You'll also be added to the IGNITE waitlist.</p>
 
             <div style={{
               display: 'grid',
@@ -1514,7 +1525,7 @@ function PlayerDNASection() {
                 textTransform: 'uppercase',
               }}
             >
-              {phase === 'loading' ? 'ANALYZING...' : 'GET YOUR PLAYER DNA'}
+              {phase === 'loading' ? 'ANALYZING...' : 'UNLOCK YOUR PLAYER DNA'}
             </button>
 
             {errorMsg && (
@@ -1524,7 +1535,7 @@ function PlayerDNASection() {
             )}
 
             <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', textAlign: 'center', marginTop: '16px', lineHeight: 1.5 }}>
-              Your results will be saved and loaded into your FUEGO profile when we launch. You'll also be added to the IGNITE waitlist.
+              We'll never share your data. Unsubscribe anytime.
             </p>
           </div>
         </FadeIn>
@@ -1549,7 +1560,6 @@ function AppContent() {
 
   const punchSize = 'clamp(22px, 4vw, 36px)';
   const midSize = '16px';
-  const closerSize = 'clamp(16px, 2.5vw, 20px)';
 
   return (
     <div style={{ overflow: 'hidden' }}>
@@ -1582,87 +1592,57 @@ function AppContent() {
           </div>
         </FadeIn>
 
-        {/* Punch Lines */}
+        {/* Headline */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginBottom: '24px', maxWidth: '750px', textAlign: 'center' }}>
-          <SlotLine text="Your weaknesses tackled." delay={600} style={{ fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px' }} />
-          <SlotLine text="Your progress tracked." delay={1100} style={{ fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px' }} />
-          <SlotLine text="Every match analyzed in real time." delay={1600} style={{ fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px' }} />
+          <SlotLine text="Become the best player" delay={600} style={{ fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px' }} />
+          <SlotLine text="on your court." delay={1100} style={{ fontSize: punchSize, fontWeight: 800, color: '#CCFF00', letterSpacing: '-0.5px', textShadow: '0 0 20px rgba(204,255,0,0.3), 0 0 40px rgba(204,255,0,0.15)' }} />
         </div>
 
-        {/* Middle line */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.2, duration: 0.8 }} style={{ marginBottom: '16px', maxWidth: '600px', textAlign: 'center' }}>
+        {/* Subline */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.8, duration: 0.8 }} style={{ marginBottom: '16px', maxWidth: '600px', textAlign: 'center' }}>
           <p style={{ margin: 0, fontSize: midSize, color: 'var(--white-40)', lineHeight: 1.7 }}>
-            AI that watches your padel game and tells you where to position, which shot to play, and how to win.
+            AI that watches your game, finds your weaknesses, and tells you exactly how to win.
           </p>
         </motion.div>
 
-        {/* Closer */}
-        <div style={{ marginBottom: '40px', maxWidth: '650px', textAlign: 'center' }}>
-          <SlotLine text="This is how you become the best on your court." delay={2800} style={{ fontSize: closerSize, fontWeight: 700, color: '#CCFF00', textShadow: '0 0 20px rgba(204,255,0,0.3), 0 0 40px rgba(204,255,0,0.15)' }} />
-        </div>
-
-        {/* Founding Members / Sold Out */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 3.8, duration: 0.7 }}>
-          {isSoldOut ? (
-            <h1 style={{ fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 800, color: '#ff4444', lineHeight: 1.1, letterSpacing: '-2px', maxWidth: '700px', textAlign: 'center', marginBottom: '20px', textTransform: 'uppercase' }}>
-              FUEGO IGNITE IS SOLD OUT.
-            </h1>
-          ) : (
-            <h1 style={{ fontSize: 'clamp(32px, 6vw, 64px)', fontWeight: 800, color: '#fff', lineHeight: 1.1, letterSpacing: '-2px', maxWidth: '700px', textAlign: 'center', marginBottom: '20px' }}>
-              Founding Members<br /><span style={{ color: '#CCFF00' }}>Program</span>
-            </h1>
-          )}
+        {/* Free assessment line */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.4, duration: 0.6 }} style={{ marginBottom: '40px', maxWidth: '650px', textAlign: 'center' }}>
+          <p style={{ margin: 0, fontSize: '14px', color: 'var(--white-40)', letterSpacing: '0.5px' }}>
+            Free assessment. 2 minutes. No signup required.
+          </p>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 4.2, duration: 0.6 }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {/* CTA */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 3.0, duration: 0.7 }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           {isSoldOut ? (
-            <p style={{ fontSize: 'clamp(16px, 2.5vw, 20px)', color: 'var(--white-40)', maxWidth: '520px', textAlign: 'center', lineHeight: 1.6, marginBottom: '40px' }}>
-              All 1,000 Founding Member spots have been claimed.<br />Join the notification list for future openings.
-            </p>
+            <>
+              <h1 style={{ fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 800, color: '#ff4444', lineHeight: 1.1, letterSpacing: '-2px', maxWidth: '700px', textAlign: 'center', marginBottom: '20px', textTransform: 'uppercase' }}>
+                FUEGO IGNITE IS SOLD OUT.
+              </h1>
+              <p style={{ fontSize: 'clamp(16px, 2.5vw, 20px)', color: 'var(--white-40)', maxWidth: '520px', textAlign: 'center', lineHeight: 1.6, marginBottom: '40px' }}>
+                All 1,000 Founding Member spots have been claimed.<br />Join the notification list for future openings.
+              </p>
+              <WaitlistForm source="hero" />
+            </>
           ) : (
-            <p style={{ fontSize: 'clamp(16px, 2.5vw, 20px)', color: 'var(--white-40)', maxWidth: '520px', textAlign: 'center', lineHeight: 1.6, marginBottom: '40px' }}>
-              Be one of 1,000 Founding Members.<br />Lifetime Premium. One payment. Never again.
-            </p>
-          )}
-
-          {isSoldOut ? (
-            <WaitlistForm source="hero" />
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-              <button
-                onClick={() => document.querySelector('[data-section="dna"]')?.scrollIntoView({ behavior: 'smooth' })}
-                style={{
-                  padding: '18px 44px',
-                  borderRadius: '12px',
-                  background: '#CCFF00',
-                  color: '#000',
-                  fontWeight: 800,
-                  fontSize: '15px',
-                  letterSpacing: '1.5px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  textTransform: 'uppercase',
-                  transition: 'all 0.2s',
-                }}
-              >
-                DISCOVER YOUR PLAYER DNA
-              </button>
-              <button
-                onClick={() => document.querySelector('[data-section="cta"]')?.scrollIntoView({ behavior: 'smooth' })}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--white-40)',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                  textUnderlineOffset: '3px',
-                  transition: 'color 0.2s',
-                }}
-              >
-                or join the waitlist directly
-              </button>
-            </div>
+            <button
+              onClick={() => document.querySelector('[data-section="dna"]')?.scrollIntoView({ behavior: 'smooth' })}
+              style={{
+                padding: '20px 48px',
+                borderRadius: '12px',
+                background: '#CCFF00',
+                color: '#000',
+                fontWeight: 800,
+                fontSize: '16px',
+                letterSpacing: '1.5px',
+                border: 'none',
+                cursor: 'pointer',
+                textTransform: 'uppercase',
+                transition: 'all 0.2s',
+              }}
+            >
+              GET YOUR FREE PERFORMANCE SCORE
+            </button>
           )}
           <div style={{ marginTop: '24px' }}><SpotsCounter /></div>
         </motion.div>
@@ -1682,28 +1662,37 @@ function AppContent() {
       {/* ━━━ 2. PLAYER DNA ASSESSMENT ━━━ */}
       <PlayerDNASection />
 
-      {/* ━━━ 3. WHAT IS FUEGO PADEL ━━━ */}
-      <section style={{ padding: '100px 24px', maxWidth: '800px', margin: '0 auto' }}>
+      {/* ━━━ 3. SOCIAL PROOF ━━━ */}
+      <section style={{ padding: '80px 24px', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
         <FadeIn>
-          <SectionLabel text="What is FUEGO PADEL" />
-          <SectionHeadline>AI-Powered Scores. Stats. Rankings.</SectionHeadline>
-          <p style={{ color: 'var(--white-40)', textAlign: 'center', fontSize: '16px', maxWidth: '600px', margin: '0 auto', lineHeight: 1.7 }}>
-            FUEGO PADEL is your padel app. Real-time scoring, performance stats, player rankings and a global network of athletes, all in one place. Available on iOS, Android and Web.
+          <p style={{
+            fontSize: 'clamp(18px, 3vw, 24px)',
+            fontWeight: 700,
+            color: '#fff',
+            marginBottom: '24px',
+          }}>
+            Already trusted by 87 clubs across Southeast Asia.
           </p>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '24px',
+            flexWrap: 'wrap',
+            fontFamily: 'var(--mono)',
+            fontSize: '13px',
+            letterSpacing: '0.5px',
+            color: 'var(--white-40)',
+          }}>
+            <span><strong style={{ color: '#CCFF00', fontSize: '20px', fontWeight: 800 }}>87</strong> venues</span>
+            <span style={{ color: 'rgba(255,255,255,0.15)' }}>&#8226;</span>
+            <span><strong style={{ color: '#CCFF00', fontSize: '20px', fontWeight: 800 }}>22</strong> features live</span>
+            <span style={{ color: 'rgba(255,255,255,0.15)' }}>&#8226;</span>
+            <span><strong style={{ color: '#CCFF00', fontSize: '20px', fontWeight: 800 }}>20</strong> alpha testers</span>
+            <span style={{ color: 'rgba(255,255,255,0.15)' }}>&#8226;</span>
+            <span><strong style={{ color: '#CCFF00', fontSize: '20px', fontWeight: 800 }}>Summer 2026</strong> launch</span>
+          </div>
         </FadeIn>
-      </section>
-
-      {/* ━━━ 3. WHY NOW ━━━ */}
-      <section style={{ padding: '100px 24px', maxWidth: '1000px', margin: '0 auto' }}>
-        <FadeIn>
-          <SectionLabel text="Why Now" />
-          <SectionHeadline>Be part of something from day one.</SectionHeadline>
-        </FadeIn>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '48px' }}>
-          <FadeIn delay={0.05}><WhyNowCard index={0} text="Millions of padel players step on court every day with no data, no feedback, no way to track their game. We're changing that." /></FadeIn>
-          <FadeIn delay={0.10}><WhyNowCard index={1} text="FUEGO PADEL launches Summer 2026. The first 1,000 members get in at a price that will never exist again." /></FadeIn>
-          <FadeIn delay={0.15}><WhyNowCard index={2} text="Premium costs $7.90/month. That's $94.80 per year. In 2 years, $189. In 3 years, $284. Founding Members pay once. Do the math." /></FadeIn>
-        </div>
       </section>
 
       {/* ━━━ 4. BENEFITS ━━━ */}
@@ -1722,7 +1711,31 @@ function AppContent() {
         </div>
       </section>
 
-      {/* ━━━ 5. PRICING ━━━ */}
+      {/* ━━━ 5. WHAT IS FUEGO PADEL ━━━ */}
+      <section style={{ padding: '100px 24px', maxWidth: '800px', margin: '0 auto' }}>
+        <FadeIn>
+          <SectionLabel text="What is FUEGO PADEL" />
+          <SectionHeadline>AI-Powered Scores. Stats. Rankings.</SectionHeadline>
+          <p style={{ color: 'var(--white-40)', textAlign: 'center', fontSize: '16px', maxWidth: '600px', margin: '0 auto', lineHeight: 1.7 }}>
+            FUEGO PADEL is your padel app. Real-time scoring, performance stats, player rankings and a global network of athletes, all in one place. Available on iOS, Android and Web.
+          </p>
+        </FadeIn>
+      </section>
+
+      {/* ━━━ 6. WHY NOW ━━━ */}
+      <section style={{ padding: '100px 24px', maxWidth: '1000px', margin: '0 auto' }}>
+        <FadeIn>
+          <SectionLabel text="Why Now" />
+          <SectionHeadline>Be part of something from day one.</SectionHeadline>
+        </FadeIn>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '48px' }}>
+          <FadeIn delay={0.05}><WhyNowCard index={0} text="Millions of padel players step on court every day with no data, no feedback, no way to track their game. We're changing that." /></FadeIn>
+          <FadeIn delay={0.10}><WhyNowCard index={1} text="FUEGO PADEL launches Summer 2026. The first 1,000 members get in at a price that will never exist again." /></FadeIn>
+          <FadeIn delay={0.15}><WhyNowCard index={2} text="Premium costs $7.90/month. That's $94.80 per year. In 2 years, $189. In 3 years, $284. Founding Members pay once. Do the math." /></FadeIn>
+        </div>
+      </section>
+
+      {/* ━━━ 7. PRICING ━━━ */}
       <section data-section="pricing" style={{ padding: '100px 24px', maxWidth: '900px', margin: '0 auto' }}>
         <FadeIn>
           <SectionLabel text="Pricing" />

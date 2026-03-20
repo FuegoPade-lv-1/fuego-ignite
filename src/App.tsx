@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, createContext, useContext } from 'react';
+import { useState, useRef, useEffect, createContext, useContext, useMemo, useCallback } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { supabase } from './lib/supabase';
 
@@ -459,6 +459,696 @@ function FuegoLogo({ height = 48 }: { height?: number }) {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PLAYER DNA ASSESSMENT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// ─── DNA Question Data ───
+const DNA_QUESTIONS = [
+  {
+    id: 'experience',
+    label: 'How long have you been playing padel?',
+    type: 'select' as const,
+    options: ['Less than 6 months', '6-12 months', '1-2 years', '2-5 years', '5+ years'],
+    weight: 0.20,
+  },
+  {
+    id: 'frequency',
+    label: 'How often do you play?',
+    type: 'select' as const,
+    options: ['Once a month or less', '2-3 times a month', 'Once a week', '2-3 times a week', '4+ times a week'],
+    weight: 0.15,
+  },
+  {
+    id: 'playstyle',
+    label: 'How would you describe your play style?',
+    type: 'slider' as const,
+    leftLabel: 'Defensive',
+    rightLabel: 'Aggressive',
+    weight: 0.05,
+  },
+  {
+    id: 'strongest_shots',
+    label: 'What are your two strongest shots?',
+    type: 'multi' as const,
+    maxSelect: 2,
+    options: ['Bandeja', 'Vibora', 'Smash', 'Lob', 'Volley', 'Chiquita', 'Bajada', 'Wall shot'],
+    weight: 0.10,
+  },
+  {
+    id: 'weakest_shot',
+    label: 'What is your weakest shot?',
+    type: 'select' as const,
+    options: ['Bandeja', 'Vibora', 'Smash', 'Lob', 'Volley', 'Chiquita', 'Bajada', 'Wall shot'],
+    weight: 0.05,
+  },
+  {
+    id: 'power_precision',
+    label: 'Power vs. Precision',
+    type: 'slider' as const,
+    leftLabel: 'Power',
+    rightLabel: 'Precision',
+    weight: 0.05,
+  },
+  {
+    id: 'net_baseline',
+    label: 'Where do you feel strongest on court?',
+    type: 'slider' as const,
+    leftLabel: 'Baseline',
+    rightLabel: 'Net',
+    weight: 0.10,
+  },
+  {
+    id: 'mental',
+    label: 'How strong is your mental game under pressure?',
+    type: 'slider' as const,
+    leftLabel: 'I crack',
+    rightLabel: 'Ice cold',
+    weight: 0.10,
+  },
+  {
+    id: 'weakest_area',
+    label: 'What area of your game needs the most work?',
+    type: 'select' as const,
+    options: ['Shot technique', 'Court positioning', 'Fitness / endurance', 'Mental toughness', 'Strategy / tactics', 'Communication with partner'],
+    weight: 0.05,
+  },
+  {
+    id: 'physicality',
+    label: 'How would you rate your physical fitness for padel?',
+    type: 'slider' as const,
+    leftLabel: 'Couch potato',
+    rightLabel: 'Athlete',
+    weight: 0.10,
+  },
+  {
+    id: 'ambition',
+    label: 'What is your padel ambition?',
+    type: 'select' as const,
+    options: ['Just for fun', 'Social competitive', 'Club level', 'Tournament player', 'Want to go pro'],
+    weight: 0.05,
+  },
+];
+
+// ─── Scoring & Radar Calculation ───
+function calculateDNA(answers: Record<string, any>): { score: number; radar: Record<string, number> } {
+  // Normalize each answer to 0-1
+  const normalize = (qId: string): number => {
+    const q = DNA_QUESTIONS.find(q => q.id === qId);
+    if (!q) return 0.5;
+    const val = answers[qId];
+    if (val === undefined || val === null) return 0.5;
+    if (q.type === 'slider') return val / 100;
+    if (q.type === 'select') {
+      const idx = q.options!.indexOf(val);
+      return idx >= 0 ? idx / (q.options!.length - 1) : 0.5;
+    }
+    if (q.type === 'multi') {
+      // More advanced shots picked = higher score
+      const advancedShots = ['Vibora', 'Bajada', 'Bandeja', 'Smash'];
+      const picks = val as string[];
+      const advCount = picks.filter(s => advancedShots.includes(s)).length;
+      return advCount / 2;
+    }
+    return 0.5;
+  };
+
+  // Weighted overall score (1.0-10.0)
+  let weightedSum = 0;
+  for (const q of DNA_QUESTIONS) {
+    weightedSum += normalize(q.id) * q.weight;
+  }
+  const score = Math.round((1 + weightedSum * 9) * 10) / 10; // 1.0-10.0
+
+  // Radar chart: 6 axes mapped from answers
+  const exp = normalize('experience');
+  const freq = normalize('frequency');
+  const style = normalize('playstyle'); // 0=defensive, 1=aggressive
+  const pp = normalize('power_precision'); // 0=power, 1=precision
+  const nb = normalize('net_baseline'); // 0=baseline, 1=net
+  const mental = normalize('mental');
+  const phys = normalize('physicality');
+  const ambition = normalize('ambition');
+  const strongest = normalize('strongest_shots');
+
+  const radar = {
+    Power: Math.round(Math.min(10, Math.max(1, ((1 - pp) * 0.4 + style * 0.3 + phys * 0.2 + strongest * 0.1) * 9 + 1)) * 10) / 10,
+    Control: Math.round(Math.min(10, Math.max(1, (pp * 0.4 + (1 - style) * 0.3 + exp * 0.2 + freq * 0.1) * 9 + 1)) * 10) / 10,
+    'Net Game': Math.round(Math.min(10, Math.max(1, (nb * 0.5 + strongest * 0.2 + exp * 0.2 + style * 0.1) * 9 + 1)) * 10) / 10,
+    Defense: Math.round(Math.min(10, Math.max(1, ((1 - style) * 0.4 + (1 - nb) * 0.3 + phys * 0.2 + mental * 0.1) * 9 + 1)) * 10) / 10,
+    Endurance: Math.round(Math.min(10, Math.max(1, (phys * 0.5 + freq * 0.3 + ambition * 0.1 + exp * 0.1) * 9 + 1)) * 10) / 10,
+    Mental: Math.round(Math.min(10, Math.max(1, (mental * 0.5 + exp * 0.2 + ambition * 0.2 + freq * 0.1) * 9 + 1)) * 10) / 10,
+  };
+
+  return { score, radar };
+}
+
+// ─── Radar Chart SVG ───
+function RadarChart({ values, size = 280 }: { values: Record<string, number>; size?: number }) {
+  const axes = Object.keys(values);
+  const count = axes.length;
+  const cx = size / 2;
+  const cy = size / 2;
+  const maxR = size * 0.38;
+
+  const angleStep = (2 * Math.PI) / count;
+  const startAngle = -Math.PI / 2; // start from top
+
+  const getPoint = (index: number, value: number) => {
+    const angle = startAngle + index * angleStep;
+    const r = (value / 10) * maxR;
+    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+  };
+
+  // Grid rings at 2.5, 5.0, 7.5, 10
+  const rings = [2.5, 5, 7.5, 10];
+
+  // Data polygon
+  const dataPoints = axes.map((_, i) => getPoint(i, values[axes[i]]));
+  const dataPath = dataPoints.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ') + ' Z';
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block', margin: '0 auto' }}>
+      {/* Grid rings */}
+      {rings.map(ring => {
+        const pts = axes.map((_, i) => getPoint(i, ring));
+        const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ') + ' Z';
+        return <path key={ring} d={path} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />;
+      })}
+
+      {/* Axis lines */}
+      {axes.map((_, i) => {
+        const p = getPoint(i, 10);
+        return <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="rgba(255,255,255,0.1)" strokeWidth="1" />;
+      })}
+
+      {/* Data fill */}
+      <path d={dataPath} fill="rgba(204,255,0,0.15)" stroke="#CCFF00" strokeWidth="2" />
+
+      {/* Data points */}
+      {dataPoints.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r="4" fill="#CCFF00" />
+      ))}
+
+      {/* Labels */}
+      {axes.map((axis, i) => {
+        const labelR = maxR + 24;
+        const angle = startAngle + i * angleStep;
+        const lx = cx + labelR * Math.cos(angle);
+        const ly = cy + labelR * Math.sin(angle);
+        const anchor = Math.abs(Math.cos(angle)) < 0.1 ? 'middle' : Math.cos(angle) > 0 ? 'start' : 'end';
+        return (
+          <text
+            key={axis}
+            x={lx}
+            y={ly}
+            textAnchor={anchor}
+            dominantBaseline="central"
+            fill="rgba(255,255,255,0.6)"
+            fontSize="11"
+            fontFamily="var(--mono)"
+            letterSpacing="0.5px"
+          >
+            {axis}
+          </text>
+        );
+      })}
+
+      {/* Value labels on axes */}
+      {axes.map((axis, i) => {
+        const p = getPoint(i, values[axis]);
+        const angle = startAngle + i * angleStep;
+        const offsetX = Math.cos(angle) * 16;
+        const offsetY = Math.sin(angle) * 16;
+        return (
+          <text
+            key={`val-${axis}`}
+            x={p.x + offsetX}
+            y={p.y + offsetY}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill="#CCFF00"
+            fontSize="10"
+            fontWeight="700"
+            fontFamily="var(--mono)"
+          >
+            {values[axis].toFixed(1)}
+          </text>
+        );
+      })}
+    </svg>
+  );
+}
+
+// ─── DNA Option Button ───
+function DNAOption({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: '10px 18px',
+        borderRadius: '10px',
+        border: selected ? '1px solid #CCFF00' : '1px solid rgba(255,255,255,0.1)',
+        background: selected ? 'rgba(204,255,0,0.1)' : 'rgba(255,255,255,0.03)',
+        color: selected ? '#CCFF00' : 'rgba(255,255,255,0.6)',
+        fontSize: '14px',
+        fontWeight: selected ? 600 : 400,
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+// ─── DNA Slider ───
+function DNASlider({
+  value,
+  onChange,
+  leftLabel,
+  rightLabel,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  leftLabel: string;
+  rightLabel: string;
+}) {
+  return (
+    <div style={{ width: '100%' }}>
+      <div style={{ position: 'relative', padding: '0 4px' }}>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          style={{
+            width: '100%',
+            height: '6px',
+            appearance: 'none',
+            WebkitAppearance: 'none',
+            background: `linear-gradient(to right, #CCFF00 0%, #CCFF00 ${value}%, rgba(255,255,255,0.1) ${value}%, rgba(255,255,255,0.1) 100%)`,
+            borderRadius: '3px',
+            outline: 'none',
+            cursor: 'pointer',
+          }}
+        />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
+        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--mono)', letterSpacing: '0.5px' }}>{leftLabel}</span>
+        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--mono)', letterSpacing: '0.5px' }}>{rightLabel}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── DNA Assessment Section ───
+function PlayerDNASection() {
+  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phase, setPhase] = useState<'questions' | 'loading' | 'result'>('questions');
+  const [result, setResult] = useState<{ score: number; radar: Record<string, number> } | null>(null);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Initialize slider defaults
+  useEffect(() => {
+    const defaults: Record<string, number> = {};
+    DNA_QUESTIONS.forEach(q => {
+      if (q.type === 'slider' && answers[q.id] === undefined) {
+        defaults[q.id] = 50;
+      }
+    });
+    if (Object.keys(defaults).length > 0) {
+      setAnswers(prev => ({ ...defaults, ...prev }));
+    }
+  }, []);
+
+  const setAnswer = useCallback((id: string, value: any) => {
+    setAnswers(prev => ({ ...prev, [id]: value }));
+  }, []);
+
+  const toggleMulti = useCallback((id: string, option: string, maxSelect: number) => {
+    setAnswers(prev => {
+      const current: string[] = prev[id] || [];
+      if (current.includes(option)) {
+        return { ...prev, [id]: current.filter(o => o !== option) };
+      }
+      if (current.length >= maxSelect) {
+        return { ...prev, [id]: [...current.slice(1), option] };
+      }
+      return { ...prev, [id]: [...current, option] };
+    });
+  }, []);
+
+  // Check if all questions answered
+  const allAnswered = useMemo(() => {
+    return DNA_QUESTIONS.every(q => {
+      const val = answers[q.id];
+      if (q.type === 'slider') return val !== undefined;
+      if (q.type === 'select') return val !== undefined && val !== null;
+      if (q.type === 'multi') return Array.isArray(val) && val.length === q.maxSelect;
+      return false;
+    });
+  }, [answers]);
+
+  const handleSubmit = async () => {
+    if (!email || !email.includes('@')) { setErrorMsg('Please enter a valid email.'); return; }
+    if (!allAnswered) { setErrorMsg('Please answer all questions.'); return; }
+
+    setPhase('loading');
+    setErrorMsg('');
+
+    const { score, radar } = calculateDNA(answers);
+
+    try {
+      // Save to player_dna table
+      const { error: dnaError } = await supabase
+        .from('player_dna')
+        .insert({
+          email: email.toLowerCase().trim(),
+          first_name: firstName.trim() || null,
+          last_name: lastName.trim() || null,
+          answers,
+          score,
+          radar_values: radar,
+        });
+      if (dnaError) throw dnaError;
+
+      // Also add to waitlist (ignore duplicate)
+      await supabase
+        .from('ignite_waitlist')
+        .insert({
+          email: email.toLowerCase().trim(),
+          first_name: firstName.trim() || null,
+          last_name: lastName.trim() || null,
+          source: 'player_dna',
+        })
+        .then(() => {});
+
+      setResult({ score, radar });
+      setPhase('result');
+    } catch (err: any) {
+      setPhase('questions');
+      setErrorMsg(err?.message || 'Something went wrong. Try again.');
+    }
+  };
+
+  const inputStyle: React.CSSProperties = {
+    padding: '14px 18px',
+    borderRadius: '10px',
+    border: '1px solid rgba(255,255,255,0.1)',
+    background: 'rgba(255,255,255,0.05)',
+    color: '#fff',
+    fontSize: '15px',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+    width: '100%',
+    boxSizing: 'border-box' as const,
+  };
+
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) =>
+    (e.target.style.borderColor = 'rgba(204,255,0,0.4)');
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) =>
+    (e.target.style.borderColor = 'rgba(255,255,255,0.1)');
+
+  // ─── Result View ───
+  if (phase === 'result' && result) {
+    return (
+      <section style={{ padding: '100px 24px', maxWidth: '700px', margin: '0 auto' }}>
+        <FadeIn>
+          <SectionLabel text="Your Player DNA" />
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <div style={{
+              display: 'inline-block',
+              padding: '32px 48px',
+              borderRadius: '20px',
+              background: 'rgba(17,17,17,0.9)',
+              border: '1px solid rgba(34,34,34,1)',
+            }}>
+              <p style={{
+                fontFamily: 'var(--mono)',
+                fontSize: '12px',
+                letterSpacing: '3px',
+                color: 'rgba(255,255,255,0.4)',
+                textTransform: 'uppercase',
+                marginBottom: '8px',
+              }}>YOUR SCORE</p>
+              <div style={{
+                fontSize: '64px',
+                fontWeight: 800,
+                color: '#CCFF00',
+                fontFamily: "'Courier New', Courier, monospace",
+                letterSpacing: '2px',
+                lineHeight: 1,
+              }}>
+                {result.score.toFixed(1)}
+              </div>
+              <p style={{
+                fontFamily: 'var(--mono)',
+                fontSize: '11px',
+                color: 'rgba(255,255,255,0.3)',
+                marginTop: '8px',
+                letterSpacing: '1px',
+              }}>OUT OF 10.0</p>
+            </div>
+          </div>
+        </FadeIn>
+
+        <FadeIn delay={0.2}>
+          <div style={{
+            padding: '32px',
+            borderRadius: '20px',
+            background: 'rgba(17,17,17,0.9)',
+            border: '1px solid rgba(34,34,34,1)',
+            marginBottom: '40px',
+          }}>
+            <p style={{
+              fontFamily: 'var(--mono)',
+              fontSize: '12px',
+              letterSpacing: '3px',
+              color: 'rgba(255,255,255,0.4)',
+              textTransform: 'uppercase',
+              textAlign: 'center',
+              marginBottom: '24px',
+            }}>YOUR RADAR</p>
+            <RadarChart values={result.radar} size={300} />
+          </div>
+        </FadeIn>
+
+        <FadeIn delay={0.3}>
+          <div style={{
+            padding: '24px',
+            borderRadius: '16px',
+            background: 'rgba(204,255,0,0.05)',
+            border: '1px solid rgba(204,255,0,0.15)',
+            textAlign: 'center',
+          }}>
+            <p style={{ color: '#CCFF00', fontWeight: 600, fontSize: '15px', marginBottom: '8px' }}>
+              {firstName ? `${firstName}, you're on the IGNITE waitlist.` : "You're on the IGNITE waitlist."}
+            </p>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', lineHeight: 1.6 }}>
+              When IGNITE launches, your Player DNA will be loaded into your profile. Track how your game evolves over time.
+            </p>
+          </div>
+        </FadeIn>
+      </section>
+    );
+  }
+
+  // ─── Questions View ───
+  return (
+    <section style={{ padding: '100px 24px', maxWidth: '700px', margin: '0 auto' }}>
+      <FadeIn>
+        <SectionLabel text="Player DNA Assessment" />
+        <SectionHeadline>Discover your padel identity.</SectionHeadline>
+        <p style={{
+          color: 'var(--white-40)',
+          textAlign: 'center',
+          fontSize: '16px',
+          maxWidth: '520px',
+          margin: '0 auto 48px',
+          lineHeight: 1.7,
+        }}>
+          Answer 11 questions. Get your Player DNA score, a personalized radar chart, and see where your game stands.
+        </p>
+      </FadeIn>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '36px' }}>
+        {DNA_QUESTIONS.map((q, qIdx) => (
+          <FadeIn key={q.id} delay={0.03 * qIdx}>
+            <div style={{
+              padding: '24px',
+              borderRadius: '16px',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+            }}>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', alignItems: 'baseline' }}>
+                <span style={{
+                  fontFamily: 'var(--mono)',
+                  fontSize: '11px',
+                  letterSpacing: '2px',
+                  color: '#CCFF00',
+                  fontWeight: 700,
+                }}>{String(qIdx + 1).padStart(2, '0')}</span>
+                <p style={{
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  color: 'var(--white-90)',
+                  margin: 0,
+                  lineHeight: 1.5,
+                }}>{q.label}</p>
+              </div>
+
+              {q.type === 'select' && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {q.options!.map(opt => (
+                    <DNAOption
+                      key={opt}
+                      label={opt}
+                      selected={answers[q.id] === opt}
+                      onClick={() => setAnswer(q.id, opt)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {q.type === 'multi' && (
+                <div>
+                  <p style={{ fontSize: '12px', color: 'var(--white-40)', marginBottom: '10px', fontFamily: 'var(--mono)', letterSpacing: '0.5px' }}>
+                    Pick {q.maxSelect} {'\u2014'} {(answers[q.id] || []).length}/{q.maxSelect} selected
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {q.options!.map(opt => (
+                      <DNAOption
+                        key={opt}
+                        label={opt}
+                        selected={(answers[q.id] || []).includes(opt)}
+                        onClick={() => toggleMulti(q.id, opt, q.maxSelect!)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {q.type === 'slider' && (
+                <DNASlider
+                  value={answers[q.id] ?? 50}
+                  onChange={(v) => setAnswer(q.id, v)}
+                  leftLabel={q.leftLabel!}
+                  rightLabel={q.rightLabel!}
+                />
+              )}
+            </div>
+          </FadeIn>
+        ))}
+
+        {/* ─── Submit Form ─── */}
+        <FadeIn delay={0.4}>
+          <div style={{
+            padding: '32px 24px',
+            borderRadius: '20px',
+            background: 'rgba(17,17,17,0.9)',
+            border: '1px solid rgba(34,34,34,1)',
+          }}>
+            <p style={{
+              fontFamily: 'var(--mono)',
+              fontSize: '12px',
+              letterSpacing: '3px',
+              color: '#CCFF00',
+              textTransform: 'uppercase',
+              textAlign: 'center',
+              marginBottom: '24px',
+            }}>GET YOUR RESULTS</p>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: '10px',
+              marginBottom: '10px',
+            }}>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="First name"
+                style={inputStyle}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+              />
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Last name"
+                style={inputStyle}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+              />
+            </div>
+
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              required
+              style={{ ...inputStyle, marginBottom: '16px' }}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+            />
+
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={phase === 'loading' || !allAnswered || !email}
+              style={{
+                width: '100%',
+                padding: '18px',
+                borderRadius: '12px',
+                background: allAnswered && email ? '#CCFF00' : 'rgba(204,255,0,0.3)',
+                color: '#000',
+                fontWeight: 800,
+                fontSize: '15px',
+                letterSpacing: '1.5px',
+                border: 'none',
+                cursor: allAnswered && email ? 'pointer' : 'not-allowed',
+                opacity: phase === 'loading' ? 0.7 : 1,
+                transition: 'all 0.2s',
+                textTransform: 'uppercase',
+              }}
+            >
+              {phase === 'loading' ? 'ANALYZING...' : 'GET YOUR PLAYER DNA'}
+            </button>
+
+            {errorMsg && (
+              <p style={{ color: '#ff4444', fontSize: '13px', textAlign: 'center', marginTop: '12px' }}>
+                {errorMsg}
+              </p>
+            )}
+
+            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', textAlign: 'center', marginTop: '16px', lineHeight: 1.5 }}>
+              Your results will be saved and loaded into your FUEGO profile when we launch. You'll also be added to the IGNITE waitlist.
+            </p>
+          </div>
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MAIN APP
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export default function App() {
@@ -594,6 +1284,9 @@ function AppContent() {
           <FadeIn delay={0.15}><WhyNowCard index={2} text="Premium costs $7.90/month. That's $94.80 per year. In 2 years, $189. In 3 years, $284. Founding Members pay once. Do the math." /></FadeIn>
         </div>
       </section>
+
+      {/* ━━━ 3.5 PLAYER DNA ASSESSMENT ━━━ */}
+      <PlayerDNASection />
 
       {/* ━━━ 4. BENEFITS ━━━ */}
       <section style={{ padding: '100px 24px', maxWidth: '1000px', margin: '0 auto' }}>

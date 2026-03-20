@@ -70,3 +70,25 @@ a {
 a:hover {
   color: var(--fuego);
 }
+
+/* DNA Assessment slider thumb */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #CCFF00;
+  cursor: pointer;
+  border: 2px solid #0D0D0D;
+  box-shadow: 0 0 8px rgba(204, 255, 0, 0.4);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #CCFF00;
+  cursor: pointer;
+  border: 2px solid #0D0D0D;
+  box-shadow: 0 0 8px rgba(204, 255, 0, 0.4);
+}

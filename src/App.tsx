@@ -7,7 +7,10 @@ const COUNTER_OFFSET = 300;
 const TOTAL_SPOTS = 1000;
 
 // ─── Waitlist Context (shared count + sold-out state) ───
-const WaitlistContext = createContext<{ remaining: number | null; isSoldOut: boolean }>({ remaining: null, isSoldOut: false });
+const WaitlistContext = createContext<{ remaining: number | null; isSoldOut: boolean }>({
+  remaining: null,
+  isSoldOut: false,
+});
 
 function WaitlistProvider({ children }: { children: React.ReactNode }) {
   const [count, setCount] = useState<number | null>(null);
@@ -66,11 +69,9 @@ function AnimatedCounter({ target, duration = 1500 }: { target: number; duration
     const start = 1000;
     const end = target;
     const startTime = performance.now();
-
     const tick = (now: number) => {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       setValue(Math.round(start + (end - start) * eased));
       if (progress < 1) requestAnimationFrame(tick);
@@ -81,20 +82,23 @@ function AnimatedCounter({ target, duration = 1500 }: { target: number; duration
   return <>{value}</>;
 }
 
-// ─── Hero Background — diffuse fog glow ───
+// ─── Hero Background ───
 function HeroBackground() {
   return (
-    <div style={{
-      position: 'absolute', inset: 0, pointerEvents: 'none',
-      background: 'radial-gradient(ellipse 80% 40% at 50% 40%, rgba(204,255,0,0.08) 0%, transparent 70%)',
-    }} />
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+        background: 'radial-gradient(ellipse 80% 40% at 50% 40%, rgba(204,255,0,0.08) 0%, transparent 70%)',
+      }}
+    />
   );
 }
 
-// ─── Slot Machine Line (slides in from below with clip) ───
+// ─── Slot Machine Line ───
 function SlotLine({ text, delay, style: extraStyle }: { text: string; delay: number; style?: React.CSSProperties }) {
   const [show, setShow] = useState(false);
-
   useEffect(() => {
     const timer = setTimeout(() => setShow(true), delay);
     return () => clearTimeout(timer);
@@ -108,11 +112,7 @@ function SlotLine({ text, delay, style: extraStyle }: { text: string; delay: num
             initial={{ y: '120%', opacity: 0 }}
             animate={{ y: '0%', opacity: 1 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              margin: 0,
-              lineHeight: 1.5,
-              ...extraStyle,
-            }}
+            style={{ margin: 0, lineHeight: 1.5, ...extraStyle }}
           >
             {text}
           </motion.p>
@@ -126,8 +126,13 @@ function SlotLine({ text, delay, style: extraStyle }: { text: string; delay: num
 function SectionLabel({ text }: { text: string }) {
   return (
     <p style={{
-      fontFamily: 'var(--mono)', fontSize: '12px', letterSpacing: '3px',
-      color: '#CCFF00', textTransform: 'uppercase', marginBottom: '12px', textAlign: 'center',
+      fontFamily: 'var(--mono)',
+      fontSize: '12px',
+      letterSpacing: '3px',
+      color: '#CCFF00',
+      textTransform: 'uppercase',
+      marginBottom: '12px',
+      textAlign: 'center',
     }}>{text}</p>
   );
 }
@@ -136,15 +141,21 @@ function SectionLabel({ text }: { text: string }) {
 function SectionHeadline({ children }: { children: React.ReactNode }) {
   return (
     <h2 style={{
-      fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700,
-      color: '#fff', textAlign: 'center', marginBottom: '16px', letterSpacing: '-1px',
+      fontSize: 'clamp(24px, 4vw, 40px)',
+      fontWeight: 700,
+      color: '#fff',
+      textAlign: 'center',
+      marginBottom: '16px',
+      letterSpacing: '-1px',
     }}>{children}</h2>
   );
 }
 
-// ─── Waitlist Form (hides when sold out) ───
+// ─── Waitlist Form (with Name Fields) ───
 function WaitlistForm({ source = 'hero' }: { source?: string }) {
   const { isSoldOut } = useContext(WaitlistContext);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -154,10 +165,16 @@ function WaitlistForm({ source = 'hero' }: { source?: string }) {
     if (!email || !email.includes('@')) return;
     setStatus('loading');
     const finalSource = isSoldOut ? 'sold_out_notify' : source;
+
     try {
       const { error } = await supabase
         .from('ignite_waitlist')
-        .insert({ email: email.toLowerCase().trim(), source: finalSource });
+        .insert({
+          email: email.toLowerCase().trim(),
+          first_name: firstName.trim() || null,
+          last_name: lastName.trim() || null,
+          source: finalSource,
+        });
       if (error) {
         if (error.code === '23505') setStatus('success');
         else throw error;
@@ -176,42 +193,140 @@ function WaitlistForm({ source = 'hero' }: { source?: string }) {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         style={{
-          display: 'flex', alignItems: 'center', gap: '10px',
-          padding: '16px 24px', borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '16px 24px',
+          borderRadius: '12px',
           background: 'rgba(204, 255, 0, 0.1)',
           border: '1px solid rgba(204, 255, 0, 0.2)',
         }}
       >
         <span style={{ fontSize: '20px' }}>🔥</span>
         <span style={{ color: '#CCFF00', fontWeight: 600, fontSize: '15px' }}>
-          {isSoldOut ? "You're on the notification list." : "You're on the list. We'll be in touch."}
+          {isSoldOut
+            ? "You're on the notification list."
+            : firstName
+            ? `Welcome, ${firstName}. You're on the list.`
+            : "You're on the list. We'll be in touch."}
         </span>
       </motion.div>
     );
   }
 
+  const inputStyle: React.CSSProperties = {
+    padding: '16px 20px',
+    borderRadius: '12px',
+    border: '1px solid rgba(255,255,255,0.1)',
+    background: 'rgba(255,255,255,0.05)',
+    color: '#fff',
+    fontSize: '16px',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+    width: '100%',
+    boxSizing: 'border-box' as const,
+  };
+
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) =>
+    (e.target.style.borderColor = 'rgba(204,255,0,0.4)');
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) =>
+    (e.target.style.borderColor = 'rgba(255,255,255,0.1)');
+
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '480px', position: 'relative', flexWrap: 'wrap', justifyContent: 'center' }}>
-      <input
-        type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-        placeholder="your@email.com" required
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        width: '100%',
+        maxWidth: '480px',
+        alignItems: 'center',
+      }}
+    >
+      {/* Name fields: side by side on desktop, stacked on mobile */}
+      <div
         style={{
-          flex: '1 1 240px', padding: '16px 20px', borderRadius: '12px',
-          border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)',
-          color: '#fff', fontSize: '16px', outline: 'none', transition: 'border-color 0.2s',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: '10px',
+          width: '100%',
         }}
-        onFocus={(e) => e.target.style.borderColor = 'rgba(204,255,0,0.4)'}
-        onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
-      />
-      <button type="submit" disabled={status === 'loading'}
+      >
+        <input
+          type="text"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          placeholder="First name"
+          style={inputStyle}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+        />
+        <input
+          type="text"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          placeholder="Last name"
+          style={inputStyle}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+        />
+      </div>
+
+      {/* Email + Submit row */}
+      <div
         style={{
-          padding: '16px 28px', borderRadius: '12px', background: '#CCFF00', color: '#000',
-          fontWeight: 700, fontSize: '15px', letterSpacing: '0.5px', whiteSpace: 'nowrap',
-          opacity: status === 'loading' ? 0.7 : 1, transition: 'all 0.2s',
+          display: 'flex',
+          gap: '10px',
+          width: '100%',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
         }}
-      >{status === 'loading' ? 'JOINING...' : (isSoldOut ? 'NOTIFY ME' : 'JOIN WAITLIST')}</button>
+      >
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="your@email.com"
+          required
+          style={{
+            ...inputStyle,
+            flex: '1 1 240px',
+            width: 'auto',
+          }}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+        />
+        <button
+          type="submit"
+          disabled={status === 'loading'}
+          style={{
+            padding: '16px 28px',
+            borderRadius: '12px',
+            background: '#CCFF00',
+            color: '#000',
+            fontWeight: 700,
+            fontSize: '15px',
+            letterSpacing: '0.5px',
+            whiteSpace: 'nowrap',
+            border: 'none',
+            cursor: 'pointer',
+            opacity: status === 'loading' ? 0.7 : 1,
+            transition: 'all 0.2s',
+          }}
+        >
+          {status === 'loading'
+            ? 'JOINING...'
+            : isSoldOut
+            ? 'NOTIFY ME'
+            : 'JOIN WAITLIST'}
+        </button>
+      </div>
+
       {status === 'error' && (
-        <p style={{ color: '#ff4444', fontSize: '13px', width: '100%', textAlign: 'center', marginTop: '4px' }}>{errorMsg}</p>
+        <p style={{ color: '#ff4444', fontSize: '13px', width: '100%', textAlign: 'center', marginTop: '4px' }}>
+          {errorMsg}
+        </p>
       )}
     </form>
   );
@@ -220,17 +335,24 @@ function WaitlistForm({ source = 'hero' }: { source?: string }) {
 // ─── Spots Counter (uses shared context with offset) ───
 function SpotsCounter() {
   const { remaining, isSoldOut } = useContext(WaitlistContext);
-
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center',
-      fontFamily: 'var(--mono)', fontSize: '13px', color: 'var(--white-40)', letterSpacing: '0.5px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      justifyContent: 'center',
+      fontFamily: 'var(--mono)',
+      fontSize: '13px',
+      color: 'var(--white-40)',
+      letterSpacing: '0.5px',
     }}>
       <motion.span
         animate={{ boxShadow: ['0 0 4px rgba(204,255,0,0.5)', '0 0 12px rgba(204,255,0,0.8)', '0 0 4px rgba(204,255,0,0.5)'] }}
         transition={{ repeat: Infinity, duration: 2 }}
         style={{
-          width: '8px', height: '8px', borderRadius: '50%',
+          width: '8px',
+          height: '8px',
+          borderRadius: '50%',
           background: isSoldOut || (remaining !== null && remaining < 100) ? '#ff4444' : '#CCFF00',
           display: 'inline-block',
         }}
@@ -252,9 +374,12 @@ function SpotsCounter() {
 function BenefitCard({ icon, title, desc }: { icon: string; title: string; desc: string }) {
   return (
     <div style={{
-      padding: '28px', borderRadius: '16px',
-      background: 'var(--bg-card)', border: '1px solid var(--border)',
-      textAlign: 'left', transition: 'all 0.3s',
+      padding: '28px',
+      borderRadius: '16px',
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border)',
+      textAlign: 'left',
+      transition: 'all 0.3s',
     }}>
       <div style={{ fontSize: '28px', marginBottom: '14px' }}>{icon}</div>
       <h3 style={{ color: 'var(--white-90)', fontSize: '17px', fontWeight: 700, marginBottom: '8px' }}>{title}</h3>
@@ -267,8 +392,13 @@ function BenefitCard({ icon, title, desc }: { icon: string; title: string; desc:
 function PricingTier({ name, price, spots, payback }: { name: string; price: number; spots: string; payback: string }) {
   return (
     <div style={{
-      flex: '1 1 240px', maxWidth: '300px', padding: '28px', borderRadius: '16px',
-      background: 'var(--bg-card)', border: '1px solid var(--border)', position: 'relative',
+      flex: '1 1 240px',
+      maxWidth: '300px',
+      padding: '28px',
+      borderRadius: '16px',
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border)',
+      position: 'relative',
     }}>
       <p style={{ fontFamily: 'var(--mono)', fontSize: '12px', letterSpacing: '2px', color: 'var(--white-40)', textTransform: 'uppercase', marginBottom: '16px' }}>{name}</p>
       <div style={{ marginBottom: '12px' }}>
@@ -285,8 +415,11 @@ function PricingTier({ name, price, spots, payback }: { name: string; price: num
 function WhyNowCard({ text, index }: { text: string; index: number }) {
   return (
     <div style={{
-      padding: '28px', borderRadius: '16px',
-      background: 'var(--bg-card)', border: '1px solid var(--border)', textAlign: 'left',
+      padding: '28px',
+      borderRadius: '16px',
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border)',
+      textAlign: 'left',
     }}>
       <div style={{ fontFamily: 'var(--mono)', fontSize: '11px', letterSpacing: '2px', color: '#CCFF00', marginBottom: '14px', textTransform: 'uppercase' }}>0{index + 1}</div>
       <p style={{ fontSize: '15px', lineHeight: 1.7, color: 'var(--white-60)' }}>{text}</p>
@@ -304,7 +437,9 @@ function FAQItem({ q, a }: { q: string; a: string }) {
         <span style={{ color: '#CCFF00', fontSize: '20px', transition: 'transform 0.2s', transform: open ? 'rotate(45deg)' : 'none' }}>+</span>
       </div>
       {open && (
-        <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+        <motion.p
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
           style={{ fontSize: '14px', lineHeight: 1.7, color: 'var(--white-40)', marginTop: '12px', marginBottom: 0 }}
         >{a}</motion.p>
       )}
@@ -315,14 +450,16 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 // ─── Full FUEGO PADEL Logo ───
 function FuegoLogo({ height = 48 }: { height?: number }) {
   return (
-    <img src="/fuego-padel-logo.svg" alt="FUEGO PADEL"
+    <img
+      src="/fuego-padel-logo.svg"
+      alt="FUEGO PADEL"
       style={{ height, width: 'auto', display: 'block' }}
     />
   );
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  MAIN APP — 8 SECTIONS
+// MAIN APP
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export default function App() {
   return (
@@ -335,7 +472,6 @@ export default function App() {
 function AppContent() {
   const { isSoldOut } = useContext(WaitlistContext);
 
-  // Punch line sizes
   const punchSize = 'clamp(22px, 4vw, 36px)';
   const midSize = '16px';
   const closerSize = 'clamp(16px, 2.5vw, 20px)';
@@ -345,9 +481,14 @@ function AppContent() {
 
       {/* ━━━ 1. HERO ━━━ */}
       <section style={{
-        minHeight: '100vh', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        padding: '60px 24px', position: 'relative', overflow: 'hidden',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '60px 24px',
+        position: 'relative',
+        overflow: 'hidden',
       }}>
         <HeroBackground />
 
@@ -356,111 +497,69 @@ function AppContent() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', marginBottom: '40px' }}>
             <FuegoLogo height={112} />
             <span style={{
-              fontFamily: 'var(--mono)', fontSize: '13px', fontWeight: 700,
-              letterSpacing: '4px', color: '#CCFF00', textTransform: 'uppercase',
+              fontFamily: 'var(--mono)',
+              fontSize: '13px',
+              fontWeight: 700,
+              letterSpacing: '4px',
+              color: '#CCFF00',
+              textTransform: 'uppercase',
             }}>IGNITE</span>
           </div>
         </FadeIn>
 
-        {/* ── Punch Lines — Slot Machine Reveal ── */}
+        {/* Punch Lines */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginBottom: '24px', maxWidth: '750px', textAlign: 'center' }}>
-          <SlotLine text="Your weaknesses tackled." delay={600} style={{
-            fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px',
-          }} />
-          <SlotLine text="Your progress tracked." delay={1100} style={{
-            fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px',
-          }} />
-          <SlotLine text="Every match analyzed in real time." delay={1600} style={{
-            fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px',
-          }} />
+          <SlotLine text="Your weaknesses tackled." delay={600} style={{ fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px' }} />
+          <SlotLine text="Your progress tracked." delay={1100} style={{ fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px' }} />
+          <SlotLine text="Every match analyzed in real time." delay={1600} style={{ fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px' }} />
         </div>
 
-        {/* ── Middle line — Fade in ── */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2.2, duration: 0.8 }}
-          style={{ marginBottom: '16px', maxWidth: '600px', textAlign: 'center' }}
-        >
+        {/* Middle line */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.2, duration: 0.8 }} style={{ marginBottom: '16px', maxWidth: '600px', textAlign: 'center' }}>
           <p style={{ margin: 0, fontSize: midSize, color: 'var(--white-40)', lineHeight: 1.7 }}>
             AI that watches your padel game and tells you where to position, which shot to play, and how to win.
           </p>
         </motion.div>
 
-        {/* ── Closer — Slot Machine with glow ── */}
+        {/* Closer */}
         <div style={{ marginBottom: '40px', maxWidth: '650px', textAlign: 'center' }}>
-          <SlotLine text="This is how you become the best on your court." delay={2800} style={{
-            fontSize: closerSize, fontWeight: 700, color: '#CCFF00',
-            textShadow: '0 0 20px rgba(204,255,0,0.3), 0 0 40px rgba(204,255,0,0.15)',
-          }} />
+          <SlotLine text="This is how you become the best on your court." delay={2800} style={{ fontSize: closerSize, fontWeight: 700, color: '#CCFF00', textShadow: '0 0 20px rgba(204,255,0,0.3), 0 0 40px rgba(204,255,0,0.15)' }} />
         </div>
 
-        {/* ── Founding Members Program / Sold Out ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 3.8, duration: 0.7 }}
-        >
+        {/* Founding Members / Sold Out */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 3.8, duration: 0.7 }}>
           {isSoldOut ? (
-            <h1 style={{
-              fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 800,
-              color: '#ff4444', lineHeight: 1.1, letterSpacing: '-2px',
-              maxWidth: '700px', textAlign: 'center', marginBottom: '20px',
-              textTransform: 'uppercase',
-            }}>
+            <h1 style={{ fontSize: 'clamp(28px, 5vw, 56px)', fontWeight: 800, color: '#ff4444', lineHeight: 1.1, letterSpacing: '-2px', maxWidth: '700px', textAlign: 'center', marginBottom: '20px', textTransform: 'uppercase' }}>
               FUEGO IGNITE IS SOLD OUT.
             </h1>
           ) : (
-            <h1 style={{
-              fontSize: 'clamp(32px, 6vw, 64px)', fontWeight: 800,
-              color: '#fff', lineHeight: 1.1, letterSpacing: '-2px',
-              maxWidth: '700px', textAlign: 'center', marginBottom: '20px',
-            }}>
-              Founding Members<br />
-              <span style={{ color: '#CCFF00' }}>Program</span>
+            <h1 style={{ fontSize: 'clamp(32px, 6vw, 64px)', fontWeight: 800, color: '#fff', lineHeight: 1.1, letterSpacing: '-2px', maxWidth: '700px', textAlign: 'center', marginBottom: '20px' }}>
+              Founding Members<br /><span style={{ color: '#CCFF00' }}>Program</span>
             </h1>
           )}
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 4.2, duration: 0.6 }}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 4.2, duration: 0.6 }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           {isSoldOut ? (
-            <p style={{
-              fontSize: 'clamp(16px, 2.5vw, 20px)', color: 'var(--white-40)',
-              maxWidth: '520px', textAlign: 'center', lineHeight: 1.6, marginBottom: '40px',
-            }}>
-              All 1,000 Founding Member spots have been claimed.<br />
-              Join the notification list for future openings.
+            <p style={{ fontSize: 'clamp(16px, 2.5vw, 20px)', color: 'var(--white-40)', maxWidth: '520px', textAlign: 'center', lineHeight: 1.6, marginBottom: '40px' }}>
+              All 1,000 Founding Member spots have been claimed.<br />Join the notification list for future openings.
             </p>
           ) : (
-            <p style={{
-              fontSize: 'clamp(16px, 2.5vw, 20px)', color: 'var(--white-40)',
-              maxWidth: '520px', textAlign: 'center', lineHeight: 1.6, marginBottom: '40px',
-            }}>
-              Be one of 1,000 Founding Members.<br />
-              Lifetime Premium. One payment. Never again.
+            <p style={{ fontSize: 'clamp(16px, 2.5vw, 20px)', color: 'var(--white-40)', maxWidth: '520px', textAlign: 'center', lineHeight: 1.6, marginBottom: '40px' }}>
+              Be one of 1,000 Founding Members.<br />Lifetime Premium. One payment. Never again.
             </p>
           )}
 
           <WaitlistForm source="hero" />
-
           <div style={{ marginTop: '24px' }}><SpotsCounter /></div>
-
           {!isSoldOut && (
-            <p style={{
-              marginTop: '20px', fontSize: '11px', color: 'var(--white-20)',
-              textAlign: 'center', maxWidth: '400px', lineHeight: 1.5,
-            }}>
+            <p style={{ marginTop: '20px', fontSize: '11px', color: 'var(--white-20)', textAlign: 'center', maxWidth: '400px', lineHeight: 1.5 }}>
               We'll only use your email to notify you when IGNITE opens. No spam. Unsubscribe anytime.
             </p>
           )}
         </motion.div>
 
-        {/* Scroll indicator — pulsing chevron */}
+        {/* Scroll indicator */}
         <motion.div
           animate={{ y: [0, 10, 0], opacity: [0.3, 0.7, 0.3] }}
           transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
@@ -477,10 +576,7 @@ function AppContent() {
         <FadeIn>
           <SectionLabel text="What is FUEGO PADEL" />
           <SectionHeadline>AI-Powered Scores. Stats. Rankings.</SectionHeadline>
-          <p style={{
-            color: 'var(--white-40)', textAlign: 'center', fontSize: '16px',
-            maxWidth: '600px', margin: '0 auto', lineHeight: 1.7,
-          }}>
+          <p style={{ color: 'var(--white-40)', textAlign: 'center', fontSize: '16px', maxWidth: '600px', margin: '0 auto', lineHeight: 1.7 }}>
             FUEGO PADEL is your padel app. Real-time scoring, performance stats, player rankings and a global network of athletes, all in one place. Available on iOS, Android and Web.
           </p>
         </FadeIn>
@@ -492,7 +588,6 @@ function AppContent() {
           <SectionLabel text="Why Now" />
           <SectionHeadline>Be part of something from day one.</SectionHeadline>
         </FadeIn>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '48px' }}>
           <FadeIn delay={0.05}><WhyNowCard index={0} text="Millions of padel players step on court every day with no data, no feedback, no way to track their game. We're changing that." /></FadeIn>
           <FadeIn delay={0.10}><WhyNowCard index={1} text="FUEGO PADEL launches Summer 2026. The first 1,000 members get in at a price that will never exist again." /></FadeIn>
@@ -506,7 +601,6 @@ function AppContent() {
           <SectionLabel text="What you get" />
           <SectionHeadline>More than an app. A movement.</SectionHeadline>
         </FadeIn>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '48px' }}>
           <FadeIn delay={0.05}><BenefitCard icon="♾️" title="Lifetime Premium Access" desc="Every feature. Every update. Forever. No subscriptions, no renewals, you're in for life. Premium is $7.90/month. That's $94.80/year. Founding Members pay once. Forever." /></FadeIn>
           <FadeIn delay={0.10}><BenefitCard icon="🏆" title="Founding Member Badge" desc="A permanent badge on your profile. Everyone will know you believed from day one." /></FadeIn>
@@ -522,12 +616,8 @@ function AppContent() {
         <FadeIn>
           <SectionLabel text="Pricing" />
           <SectionHeadline>One payment. Lifetime access.</SectionHeadline>
-          <p style={{
-            color: 'var(--white-40)', textAlign: 'center', fontSize: '16px',
-            maxWidth: '500px', margin: '0 auto 50px',
-          }}>Only 1,000 spots total. When they're gone, they're gone.</p>
+          <p style={{ color: 'var(--white-40)', textAlign: 'center', fontSize: '16px', maxWidth: '500px', margin: '0 auto 50px' }}>Only 1,000 spots total. When they're gone, they're gone.</p>
         </FadeIn>
-
         <FadeIn delay={0.1}>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'stretch', flexWrap: 'wrap', justifyContent: 'center' }}>
             <PricingTier name="Early Ignite" price={79} spots="First 200 spots. Lowest price ever." payback="Pays for itself in 11 months. Everything after that is free." />
@@ -535,16 +625,11 @@ function AppContent() {
             <PricingTier name="Late Ignite" price={149} spots="Final 300 spots" payback="Pays for itself in 19 months. Everything after that is free." />
           </div>
         </FadeIn>
-
         <FadeIn delay={0.2}>
-          <p style={{
-            textAlign: 'center', marginTop: '32px', fontSize: '14px',
-            color: 'var(--white-40)', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6,
-          }}>
+          <p style={{ textAlign: 'center', marginTop: '32px', fontSize: '14px', color: 'var(--white-40)', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
             The average padel player stays active for 6+ years. That's $569 in subscriptions, or one payment of $79-149. Your call.
           </p>
         </FadeIn>
-
         <FadeIn delay={0.25}>
           <div style={{ textAlign: 'center', marginTop: '32px' }}><SpotsCounter /></div>
         </FadeIn>
@@ -556,7 +641,6 @@ function AppContent() {
           <SectionLabel text="FAQ" />
           <SectionHeadline>Questions? We got you.</SectionHeadline>
         </FadeIn>
-
         <FadeIn delay={0.1}>
           <div style={{ marginTop: '40px' }}>
             <FAQItem q="What is FUEGO PADEL?" a="Your AI-powered padel app. Real-time scoring, performance stats, player rankings and a global network of athletes." />
@@ -571,23 +655,26 @@ function AppContent() {
 
       {/* ━━━ 7. FINAL CTA ━━━ */}
       <section style={{
-        padding: '100px 24px', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', position: 'relative',
+        padding: '100px 24px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        position: 'relative',
       }}>
         <div style={{
-          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-          width: '600px', height: '400px',
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '600px',
+          height: '400px',
           background: 'radial-gradient(ellipse, rgba(204,255,0,0.04) 0%, transparent 70%)',
           pointerEvents: 'none',
         }} />
-
         <FadeIn>
           <SectionHeadline>Ready to ignite?</SectionHeadline>
-          <p style={{
-            color: 'var(--white-40)', textAlign: 'center', marginBottom: '40px', fontSize: '16px',
-          }}>Join the waitlist. Secure your spot. Get notified when we launch.</p>
+          <p style={{ color: 'var(--white-40)', textAlign: 'center', marginBottom: '40px', fontSize: '16px' }}>Join the waitlist. Secure your spot. Get notified when we launch.</p>
         </FadeIn>
-
         <FadeIn delay={0.1}>
           <WaitlistForm source="cta" />
         </FadeIn>
@@ -595,8 +682,12 @@ function AppContent() {
 
       {/* ━━━ 8. FOOTER ━━━ */}
       <footer style={{
-        padding: '40px 24px', borderTop: '1px solid var(--border)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px',
+        padding: '40px 24px',
+        borderTop: '1px solid var(--border)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '20px',
       }}>
         <FuegoLogo height={48} />
         <div style={{ display: 'flex', gap: '24px', fontSize: '13px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -605,10 +696,7 @@ function AppContent() {
           <a href="https://app.fuego-padel.com/privacy" target="_blank" rel="noopener">Privacy</a>
           <a href="https://app.fuego-padel.com" target="_blank" rel="noopener">App</a>
         </div>
-        <p style={{
-          fontFamily: 'var(--mono)', fontSize: '11px', letterSpacing: '2px',
-          color: 'var(--white-20)', textTransform: 'uppercase',
-        }}>Nobody knows the score. We do.</p>
+        <p style={{ fontFamily: 'var(--mono)', fontSize: '11px', letterSpacing: '2px', color: 'var(--white-20)', textTransform: 'uppercase' }}>Nobody knows the score. We do.</p>
       </footer>
     </div>
   );

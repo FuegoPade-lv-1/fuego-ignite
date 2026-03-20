@@ -591,24 +591,24 @@ function calculateDNA(answers: Record<string, any>): { score: number; radar: Rec
   const strongest = normalize('strongest_shots');
 
   const radar = {
-    Power: Math.round(Math.min(10, Math.max(1, ((1 - pp) * 0.4 + style * 0.3 + phys * 0.2 + strongest * 0.1) * 9 + 1)) * 10) / 10,
-    Control: Math.round(Math.min(10, Math.max(1, (pp * 0.4 + (1 - style) * 0.3 + exp * 0.2 + freq * 0.1) * 9 + 1)) * 10) / 10,
-    'Net Game': Math.round(Math.min(10, Math.max(1, (nb * 0.5 + strongest * 0.2 + exp * 0.2 + style * 0.1) * 9 + 1)) * 10) / 10,
-    Defense: Math.round(Math.min(10, Math.max(1, ((1 - style) * 0.4 + (1 - nb) * 0.3 + phys * 0.2 + mental * 0.1) * 9 + 1)) * 10) / 10,
-    Endurance: Math.round(Math.min(10, Math.max(1, (phys * 0.5 + freq * 0.3 + ambition * 0.1 + exp * 0.1) * 9 + 1)) * 10) / 10,
-    Mental: Math.round(Math.min(10, Math.max(1, (mental * 0.5 + exp * 0.2 + ambition * 0.2 + freq * 0.1) * 9 + 1)) * 10) / 10,
+    PWR: Math.round(Math.min(10, Math.max(1, ((1 - pp) * 0.4 + style * 0.3 + phys * 0.2 + strongest * 0.1) * 9 + 1)) * 10) / 10,
+    CTL: Math.round(Math.min(10, Math.max(1, (pp * 0.4 + (1 - style) * 0.3 + exp * 0.2 + freq * 0.1) * 9 + 1)) * 10) / 10,
+    NET: Math.round(Math.min(10, Math.max(1, (nb * 0.5 + strongest * 0.2 + exp * 0.2 + style * 0.1) * 9 + 1)) * 10) / 10,
+    DEF: Math.round(Math.min(10, Math.max(1, ((1 - style) * 0.4 + (1 - nb) * 0.3 + phys * 0.2 + mental * 0.1) * 9 + 1)) * 10) / 10,
+    END: Math.round(Math.min(10, Math.max(1, (phys * 0.5 + freq * 0.3 + ambition * 0.1 + exp * 0.1) * 9 + 1)) * 10) / 10,
+    MNT: Math.round(Math.min(10, Math.max(1, (mental * 0.5 + exp * 0.2 + ambition * 0.2 + freq * 0.1) * 9 + 1)) * 10) / 10,
   };
 
   return { score, radar };
 }
 
 // ─── Radar Chart SVG ───
-function RadarChart({ values, size = 280 }: { values: Record<string, number>; size?: number }) {
+function RadarChart({ values, size = 320 }: { values: Record<string, number>; size?: number }) {
   const axes = Object.keys(values);
   const count = axes.length;
   const cx = size / 2;
   const cy = size / 2;
-  const maxR = size * 0.38;
+  const maxR = size * 0.34;
 
   const angleStep = (2 * Math.PI) / count;
   const startAngle = -Math.PI / 2; // start from top
@@ -779,7 +779,7 @@ function PlayerDNASection() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phase, setPhase] = useState<'questions' | 'loading' | 'result'>('questions');
-  const [result, setResult] = useState<{ score: number; radar: Record<string, number> } | null>(null);
+  const [result, setResult] = useState<{ score: number; radar: Record<string, number>; position: number; profileText: string; upgradeText: string } | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
   // Initialize slider defaults
@@ -857,7 +857,26 @@ function PlayerDNASection() {
         })
         .then(() => {});
 
-      setResult({ score, radar });
+      // Get waitlist position
+      const { count: wlCount } = await supabase
+        .from('ignite_waitlist')
+        .select('*', { count: 'exact', head: true });
+      const position = (wlCount ?? 0) + 300;
+
+      // Build profile text
+      const radarEntries = Object.entries(radar);
+      const strongest = radarEntries.reduce((a, b) => a[1] > b[1] ? a : b);
+      const weakest = radarEntries.reduce((a, b) => a[1] < b[1] ? a : b);
+      const axisFullNames: Record<string, string> = { PWR: 'power game', CTL: 'control game', NET: 'net game', DEF: 'defense', END: 'endurance', MNT: 'mental game' };
+      let profileText = `Your ${axisFullNames[strongest[0]]} is your strongest asset at ${strongest[1].toFixed(1)}/10. `;
+      if (score >= 7.0) profileText += 'You are an advanced player with a well-rounded game. ';
+      else if (score >= 5.0) profileText += 'You have a solid foundation with clear strengths. ';
+      else profileText += 'You are building your game and have great potential. ';
+      profileText += `Your ${axisFullNames[weakest[0]]} has the most room for growth. Players with your DNA typically score between ${Math.max(1, score - 0.8).toFixed(1)} and ${Math.min(10, score + 0.8).toFixed(1)} on the FUEGO Scale.`;
+
+      const upgradeText = `Focus area: ${weakest[0]}. Players who improve their ${axisFullNames[weakest[0]]} gain 0.6 to 1.0 FUEGO Score points within 3 months.`;
+
+      setResult({ score, radar, position, profileText, upgradeText });
       setPhase('result');
     } catch (err: any) {
       setPhase('questions');
@@ -885,11 +904,13 @@ function PlayerDNASection() {
 
   // ─── Result View ───
   if (phase === 'result' && result) {
+    const posDisplay = String(result.position).padStart(4, '0');
     return (
       <section style={{ padding: '100px 24px', maxWidth: '700px', margin: '0 auto' }}>
         <FadeIn>
           <SectionLabel text="Your Player DNA" />
-          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          {/* Score Card */}
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <div style={{
               display: 'inline-block',
               padding: '32px 48px',
@@ -924,15 +945,19 @@ function PlayerDNASection() {
               }}>OUT OF 10.0</p>
             </div>
           </div>
+          <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', textAlign: 'center', fontStyle: 'italic', marginBottom: '40px' }}>
+            Provisional, based on self-assessment
+          </p>
         </FadeIn>
 
-        <FadeIn delay={0.2}>
+        {/* Radar Chart */}
+        <FadeIn delay={0.15}>
           <div style={{
             padding: '32px',
             borderRadius: '20px',
             background: 'rgba(17,17,17,0.9)',
             border: '1px solid rgba(34,34,34,1)',
-            marginBottom: '40px',
+            marginBottom: '24px',
           }}>
             <p style={{
               fontFamily: 'var(--mono)',
@@ -943,23 +968,145 @@ function PlayerDNASection() {
               textAlign: 'center',
               marginBottom: '24px',
             }}>YOUR RADAR</p>
-            <RadarChart values={result.radar} size={300} />
+            <RadarChart values={result.radar} size={320} />
           </div>
         </FadeIn>
 
-        <FadeIn delay={0.3}>
+        {/* Player Profile */}
+        <FadeIn delay={0.25}>
+          <div style={{
+            padding: '24px',
+            borderRadius: '16px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            marginBottom: '24px',
+          }}>
+            <p style={{
+              fontFamily: 'var(--mono)',
+              fontSize: '11px',
+              letterSpacing: '3px',
+              color: '#CCFF00',
+              textTransform: 'uppercase',
+              marginBottom: '12px',
+            }}>YOUR PLAYER PROFILE</p>
+            <p style={{ fontSize: '14px', lineHeight: 1.7, color: 'var(--white-60)', margin: 0 }}>
+              {result.profileText}
+            </p>
+          </div>
+        </FadeIn>
+
+        {/* Upgrade Path */}
+        <FadeIn delay={0.35}>
+          <div style={{
+            padding: '24px',
+            borderRadius: '16px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            marginBottom: '24px',
+          }}>
+            <p style={{
+              fontFamily: 'var(--mono)',
+              fontSize: '11px',
+              letterSpacing: '3px',
+              color: '#CCFF00',
+              textTransform: 'uppercase',
+              marginBottom: '12px',
+            }}>YOUR UPGRADE PATH</p>
+            <p style={{ fontSize: '14px', lineHeight: 1.7, color: 'var(--white-60)', margin: 0 }}>
+              {result.upgradeText}
+            </p>
+          </div>
+        </FadeIn>
+
+        {/* What FUEGO does */}
+        <FadeIn delay={0.4}>
+          <div style={{
+            padding: '24px',
+            borderRadius: '16px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            marginBottom: '24px',
+          }}>
+            <p style={{
+              fontFamily: 'var(--mono)',
+              fontSize: '11px',
+              letterSpacing: '3px',
+              color: '#CCFF00',
+              textTransform: 'uppercase',
+              marginBottom: '12px',
+            }}>WHAT FUEGO PADEL DOES FOR YOU</p>
+            <p style={{ fontSize: '13px', lineHeight: 1.7, color: 'var(--white-40)', marginBottom: '16px' }}>
+              This is your estimated DNA based on self-assessment. Your real FUEGO Score is calculated after 5 matches, based on actual results, opponent strength, and live performance data.
+            </p>
+            {[
+              'Live Match Scoring, every point tracked in real time',
+              'AI Performance Analysis after every match',
+              'Rankings against every player in your city',
+              'Player DNA updated in real time, match by match',
+              'Coaching Insights, exactly what to work on next',
+            ].map((item, i) => (
+              <p key={i} style={{ fontSize: '13px', color: 'var(--white-60)', margin: '6px 0', lineHeight: 1.5 }}>
+                {'✓ '}{item}
+              </p>
+            ))}
+          </div>
+        </FadeIn>
+
+        {/* Waitlist Position */}
+        <FadeIn delay={0.45}>
           <div style={{
             padding: '24px',
             borderRadius: '16px',
             background: 'rgba(204,255,0,0.05)',
             border: '1px solid rgba(204,255,0,0.15)',
             textAlign: 'center',
+            marginBottom: '32px',
           }}>
-            <p style={{ color: '#CCFF00', fontWeight: 600, fontSize: '15px', marginBottom: '8px' }}>
-              {firstName ? `${firstName}, you're on the IGNITE waitlist.` : "You're on the IGNITE waitlist."}
+            <p style={{
+              fontFamily: 'var(--mono)',
+              fontSize: '11px',
+              letterSpacing: '3px',
+              color: '#CCFF00',
+              textTransform: 'uppercase',
+              marginBottom: '12px',
+            }}>YOU'RE ON THE LIST</p>
+            <p style={{ color: 'var(--white-60)', fontSize: '14px', lineHeight: 1.7, margin: 0 }}>
+              {firstName
+                ? `${firstName}, you're #${posDisplay} of 1,000 Founding Members.`
+                : `You're #${posDisplay} of 1,000 Founding Members.`}
+              {' '}When IGNITE opens, you'll be the first to know.
             </p>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', lineHeight: 1.6 }}>
-              When IGNITE launches, your Player DNA will be loaded into your profile. Track how your game evolves over time.
+          </div>
+        </FadeIn>
+
+        {/* CTA to Pricing */}
+        <FadeIn delay={0.5}>
+          <div style={{ textAlign: 'center' }}>
+            <a
+              href="#pricing"
+              onClick={(e) => {
+                e.preventDefault();
+                document.querySelector('[data-section="pricing"]')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              style={{
+                display: 'inline-block',
+                padding: '16px 40px',
+                background: '#CCFF00',
+                color: '#000',
+                fontWeight: 800,
+                fontSize: '14px',
+                letterSpacing: '1.5px',
+                textDecoration: 'none',
+                borderRadius: '12px',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              VIEW PRICING
+            </a>
+            <p style={{ fontSize: '12px', color: 'var(--white-20)', marginTop: '16px' }}>
+              Your Player DNA will be loaded into your FUEGO profile when we launch.
             </p>
           </div>
         </FadeIn>
@@ -1305,7 +1452,7 @@ function AppContent() {
       </section>
 
       {/* ━━━ 5. PRICING ━━━ */}
-      <section style={{ padding: '100px 24px', maxWidth: '900px', margin: '0 auto' }}>
+      <section data-section="pricing" style={{ padding: '100px 24px', maxWidth: '900px', margin: '0 auto' }}>
         <FadeIn>
           <SectionLabel text="Pricing" />
           <SectionHeadline>One payment. Lifetime access.</SectionHeadline>

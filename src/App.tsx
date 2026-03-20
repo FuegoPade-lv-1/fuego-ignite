@@ -1116,7 +1116,7 @@ function PlayerDNASection() {
 
   // ─── Questions View ───
   return (
-    <section style={{ padding: '100px 24px', maxWidth: '700px', margin: '0 auto' }}>
+    <section data-section="dna" style={{ padding: '100px 24px', maxWidth: '700px', margin: '0 auto' }}>
       <FadeIn>
         <SectionLabel text="Player DNA Assessment" />
         <SectionHeadline>Discover your padel identity.</SectionHeadline>
@@ -1387,13 +1387,46 @@ function AppContent() {
             </p>
           )}
 
-          <WaitlistForm source="hero" />
-          <div style={{ marginTop: '24px' }}><SpotsCounter /></div>
-          {!isSoldOut && (
-            <p style={{ marginTop: '20px', fontSize: '11px', color: 'var(--white-20)', textAlign: 'center', maxWidth: '400px', lineHeight: 1.5 }}>
-              We'll only use your email to notify you when IGNITE opens. No spam. Unsubscribe anytime.
-            </p>
+          {isSoldOut ? (
+            <WaitlistForm source="hero" />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+              <button
+                onClick={() => document.querySelector('[data-section="dna"]')?.scrollIntoView({ behavior: 'smooth' })}
+                style={{
+                  padding: '18px 44px',
+                  borderRadius: '12px',
+                  background: '#CCFF00',
+                  color: '#000',
+                  fontWeight: 800,
+                  fontSize: '15px',
+                  letterSpacing: '1.5px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                  transition: 'all 0.2s',
+                }}
+              >
+                DISCOVER YOUR PLAYER DNA
+              </button>
+              <button
+                onClick={() => document.querySelector('[data-section="cta"]')?.scrollIntoView({ behavior: 'smooth' })}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--white-40)',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '3px',
+                  transition: 'color 0.2s',
+                }}
+              >
+                or join the waitlist directly
+              </button>
+            </div>
           )}
+          <div style={{ marginTop: '24px' }}><SpotsCounter /></div>
         </motion.div>
 
         {/* Scroll indicator */}
@@ -1408,7 +1441,10 @@ function AppContent() {
         </motion.div>
       </section>
 
-      {/* ━━━ 2. WHAT IS FUEGO PADEL ━━━ */}
+      {/* ━━━ 2. PLAYER DNA ASSESSMENT ━━━ */}
+      <PlayerDNASection />
+
+      {/* ━━━ 3. WHAT IS FUEGO PADEL ━━━ */}
       <section style={{ padding: '100px 24px', maxWidth: '800px', margin: '0 auto' }}>
         <FadeIn>
           <SectionLabel text="What is FUEGO PADEL" />
@@ -1431,9 +1467,6 @@ function AppContent() {
           <FadeIn delay={0.15}><WhyNowCard index={2} text="Premium costs $7.90/month. That's $94.80 per year. In 2 years, $189. In 3 years, $284. Founding Members pay once. Do the math." /></FadeIn>
         </div>
       </section>
-
-      {/* ━━━ 3.5 PLAYER DNA ASSESSMENT ━━━ */}
-      <PlayerDNASection />
 
       {/* ━━━ 4. BENEFITS ━━━ */}
       <section style={{ padding: '100px 24px', maxWidth: '1000px', margin: '0 auto' }}>
@@ -1494,7 +1527,7 @@ function AppContent() {
       </section>
 
       {/* ━━━ 7. FINAL CTA ━━━ */}
-      <section style={{
+      <section data-section="cta" style={{
         padding: '100px 24px',
         display: 'flex',
         flexDirection: 'column',

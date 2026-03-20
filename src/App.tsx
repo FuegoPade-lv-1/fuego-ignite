@@ -905,6 +905,19 @@ function PlayerDNASection() {
   // ─── Result View ───
   if (phase === 'result' && result) {
     const posDisplay = String(result.position).padStart(4, '0');
+
+    // Tier + Percentile logic
+    const sc = result.score;
+    const tierLabel = sc >= 8.6 ? 'ELITE' : sc >= 7.1 ? 'ADVANCED' : sc >= 5.1 ? 'ADVANCED INTERMEDIATE' : sc >= 3.1 ? 'INTERMEDIATE' : 'BEGINNER';
+    const percentileText = sc >= 8.6 ? 'Top 5%' : sc >= 7.1 ? 'Top 15%' : sc >= 5.1 ? 'Top 40%' : sc >= 3.1 ? 'Top 65%' : 'Top 85%';
+    const gaugePercent = Math.min(100, Math.max(0, (sc / 10) * 100));
+
+    // Sorted breakdown bars
+    const axisNames: Record<string, string> = { PWR: 'Power Game', CTL: 'Control Game', NET: 'Net Game', DEF: 'Defense', END: 'Endurance', MNT: 'Mental Game' };
+    const sortedRadar = Object.entries(result.radar).sort((a, b) => b[1] - a[1]);
+    const strongestKey = sortedRadar[0][0];
+    const weakestKey = sortedRadar[sortedRadar.length - 1][0];
+
     return (
       <section style={{ padding: '100px 24px', maxWidth: '700px', margin: '0 auto' }}>
         <FadeIn>
@@ -917,6 +930,9 @@ function PlayerDNASection() {
               borderRadius: '20px',
               background: 'rgba(17,17,17,0.9)',
               border: '1px solid rgba(34,34,34,1)',
+              width: '100%',
+              maxWidth: '500px',
+              boxSizing: 'border-box' as const,
             }}>
               <p style={{
                 fontFamily: 'var(--mono)',
@@ -943,6 +959,50 @@ function PlayerDNASection() {
                 marginTop: '8px',
                 letterSpacing: '1px',
               }}>OUT OF 10.0</p>
+
+              {/* Score Gauge Bar */}
+              <div style={{
+                marginTop: '24px',
+                height: '12px',
+                borderRadius: '6px',
+                background: 'rgba(255,255,255,0.08)',
+                overflow: 'hidden',
+                position: 'relative' as const,
+              }}>
+                <div style={{
+                  width: `${gaugePercent}%`,
+                  height: '100%',
+                  borderRadius: '6px',
+                  background: 'linear-gradient(90deg, #ff4444 0%, #ff8800 25%, #CCFF00 60%, #00ff88 100%)',
+                  transition: 'width 1.2s ease-out',
+                }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: '9px', color: 'rgba(255,255,255,0.2)' }}>1.0</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: '9px', color: 'rgba(255,255,255,0.2)' }}>10.0</span>
+              </div>
+
+              {/* Tier + Percentile */}
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center', gap: '12px', alignItems: 'center', flexWrap: 'wrap' as const }}>
+                <span style={{
+                  display: 'inline-block',
+                  padding: '6px 16px',
+                  borderRadius: '20px',
+                  background: 'rgba(204,255,0,0.15)',
+                  border: '1px solid rgba(204,255,0,0.3)',
+                  fontFamily: 'var(--mono)',
+                  fontSize: '11px',
+                  letterSpacing: '2px',
+                  color: '#CCFF00',
+                  fontWeight: 700,
+                }}>{tierLabel}</span>
+                <span style={{
+                  fontFamily: 'var(--mono)',
+                  fontSize: '12px',
+                  color: 'rgba(255,255,255,0.5)',
+                  letterSpacing: '1px',
+                }}>{percentileText}</span>
+              </div>
             </div>
           </div>
           <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', textAlign: 'center', fontStyle: 'italic', marginBottom: '40px' }}>
@@ -950,8 +1010,94 @@ function PlayerDNASection() {
           </p>
         </FadeIn>
 
+        {/* Score Breakdown Bars */}
+        <FadeIn delay={0.1}>
+          <div style={{
+            padding: '28px 24px',
+            borderRadius: '20px',
+            background: 'rgba(17,17,17,0.9)',
+            border: '1px solid rgba(34,34,34,1)',
+            marginBottom: '24px',
+          }}>
+            <p style={{
+              fontFamily: 'var(--mono)',
+              fontSize: '12px',
+              letterSpacing: '3px',
+              color: 'rgba(255,255,255,0.4)',
+              textTransform: 'uppercase',
+              textAlign: 'center',
+              marginBottom: '24px',
+            }}>SCORE BREAKDOWN</p>
+            {sortedRadar.map(([key, val]) => {
+              const barPct = Math.min(100, Math.max(0, (val / 10) * 100));
+              const isStrongest = key === strongestKey;
+              const isWeakest = key === weakestKey;
+              const barColor = isStrongest ? '#CCFF00' : isWeakest ? '#ff4444' : 'rgba(255,255,255,0.35)';
+              return (
+                <div key={key} style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' as const }}>
+                      <span style={{
+                        fontFamily: 'var(--mono)',
+                        fontSize: '11px',
+                        letterSpacing: '1.5px',
+                        color: isStrongest ? '#CCFF00' : isWeakest ? '#ff4444' : 'rgba(255,255,255,0.6)',
+                        textTransform: 'uppercase',
+                      }}>{axisNames[key] || key}</span>
+                      {isStrongest && (
+                        <span style={{
+                          fontSize: '9px',
+                          fontFamily: 'var(--mono)',
+                          letterSpacing: '1.5px',
+                          padding: '2px 8px',
+                          borderRadius: '10px',
+                          background: 'rgba(204,255,0,0.15)',
+                          color: '#CCFF00',
+                          fontWeight: 700,
+                        }}>STRONGEST</span>
+                      )}
+                      {isWeakest && (
+                        <span style={{
+                          fontSize: '9px',
+                          fontFamily: 'var(--mono)',
+                          letterSpacing: '1.5px',
+                          padding: '2px 8px',
+                          borderRadius: '10px',
+                          background: 'rgba(255,68,68,0.15)',
+                          color: '#ff4444',
+                          fontWeight: 700,
+                        }}>FOCUS AREA</span>
+                      )}
+                    </div>
+                    <span style={{
+                      fontFamily: 'var(--mono)',
+                      fontSize: '12px',
+                      color: isStrongest ? '#CCFF00' : isWeakest ? '#ff4444' : 'rgba(255,255,255,0.5)',
+                      fontWeight: 700,
+                    }}>{val.toFixed(1)}</span>
+                  </div>
+                  <div style={{
+                    height: '8px',
+                    borderRadius: '4px',
+                    background: 'rgba(255,255,255,0.06)',
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{
+                      width: `${barPct}%`,
+                      height: '100%',
+                      borderRadius: '4px',
+                      background: barColor,
+                      transition: 'width 0.8s ease-out',
+                    }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </FadeIn>
+
         {/* Radar Chart */}
-        <FadeIn delay={0.15}>
+        <FadeIn delay={0.2}>
           <div style={{
             padding: '32px',
             borderRadius: '20px',
@@ -973,7 +1119,7 @@ function PlayerDNASection() {
         </FadeIn>
 
         {/* Player Profile */}
-        <FadeIn delay={0.25}>
+        <FadeIn delay={0.3}>
           <div style={{
             padding: '24px',
             borderRadius: '16px',
@@ -1018,8 +1164,40 @@ function PlayerDNASection() {
           </div>
         </FadeIn>
 
-        {/* What FUEGO does */}
+        {/* Your FUEGO Journey */}
         <FadeIn delay={0.4}>
+          <div style={{
+            padding: '24px',
+            borderRadius: '16px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            marginBottom: '24px',
+          }}>
+            <p style={{
+              fontFamily: 'var(--mono)',
+              fontSize: '11px',
+              letterSpacing: '3px',
+              color: '#CCFF00',
+              textTransform: 'uppercase',
+              marginBottom: '16px',
+            }}>YOUR FUEGO JOURNEY</p>
+            <p style={{ fontSize: '14px', lineHeight: 1.8, color: 'var(--white-60)', marginBottom: '14px' }}>
+              <strong style={{ color: 'rgba(255,255,255,0.8)' }}>Your starting point.</strong>{' '}
+              This is your Player DNA today — a snapshot of your game based on honest self-assessment. It's not a final verdict, it's a baseline. Every champion started somewhere, and now you know exactly where you stand.
+            </p>
+            <p style={{ fontSize: '14px', lineHeight: 1.8, color: 'var(--white-60)', marginBottom: '14px' }}>
+              <strong style={{ color: 'rgba(255,255,255,0.8)' }}>Your evolution.</strong>{' '}
+              Once FUEGO IGNITE launches, your DNA will evolve with every match. Real scores replace estimates. AI analysis sharpens your profile. Your radar shifts as you grow — and you'll see exactly how far you've come.
+            </p>
+            <p style={{ fontSize: '14px', lineHeight: 1.8, color: 'var(--white-60)', margin: 0 }}>
+              <strong style={{ color: 'rgba(255,255,255,0.8)' }}>The beginning of your journey.</strong>{' '}
+              Whether you're here to compete, improve, or just finally know where you stand — FUEGO gives you the tools to track your game like a pro. Your DNA is your story. Let's write the next chapter.
+            </p>
+          </div>
+        </FadeIn>
+
+        {/* What FUEGO does */}
+        <FadeIn delay={0.45}>
           <div style={{
             padding: '24px',
             borderRadius: '16px',
@@ -1053,7 +1231,7 @@ function PlayerDNASection() {
         </FadeIn>
 
         {/* Waitlist Position */}
-        <FadeIn delay={0.45}>
+        <FadeIn delay={0.5}>
           <div style={{
             padding: '24px',
             borderRadius: '16px',
@@ -1080,7 +1258,7 @@ function PlayerDNASection() {
         </FadeIn>
 
         {/* CTA to Pricing */}
-        <FadeIn delay={0.5}>
+        <FadeIn delay={0.55}>
           <div style={{ textAlign: 'center' }}>
             <a
               href="#pricing"

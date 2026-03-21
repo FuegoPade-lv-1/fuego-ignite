@@ -1594,7 +1594,7 @@ function AppContent() {
 
         {/* Headline */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginBottom: '24px', maxWidth: '750px', textAlign: 'center' }}>
-          <SlotLine text="Become the best player" delay={600} style={{ fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px' }} />
+          <SlotLine text="Become the best padel player" delay={600} style={{ fontSize: punchSize, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px' }} />
           <SlotLine text="on your court." delay={1100} style={{ fontSize: punchSize, fontWeight: 800, color: '#CCFF00', letterSpacing: '-0.5px', textShadow: '0 0 20px rgba(204,255,0,0.3), 0 0 40px rgba(204,255,0,0.15)' }} />
         </div>
 
@@ -1662,7 +1662,33 @@ function AppContent() {
       {/* ━━━ 2. PLAYER DNA ASSESSMENT ━━━ */}
       <PlayerDNASection />
 
-      {/* ━━━ 3. SOCIAL PROOF ━━━ */}
+      {/* ━━━ 3. FOUNDING MEMBERS PROGRAM ━━━ */}
+      <section style={{ padding: '80px 24px', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+        <FadeIn>
+          <p style={{
+            fontSize: 'clamp(24px, 4vw, 36px)',
+            fontWeight: 800,
+            color: '#CCFF00',
+            marginBottom: '24px',
+            lineHeight: 1.2,
+          }}>
+            Become a Founding Member.
+          </p>
+          <p style={{
+            fontSize: '16px',
+            color: 'rgba(255,255,255,0.6)',
+            lineHeight: 1.8,
+            maxWidth: '600px',
+            margin: '0 auto',
+          }}>
+            FUEGO PADEL Premium costs $7.90/month. Premium Plus costs $14.90/month.<br />
+            Founding Members pay once. Never again.<br />
+            1,000 spots. When they're gone, the price goes to monthly. Forever.
+          </p>
+        </FadeIn>
+      </section>
+
+      {/* ━━━ 4. SOCIAL PROOF ━━━ */}
       <section style={{ padding: '80px 24px', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
         <FadeIn>
           <p style={{
@@ -1698,7 +1724,7 @@ function AppContent() {
       {/* ━━━ 4. BENEFITS ━━━ */}
       <section style={{ padding: '100px 24px', maxWidth: '1000px', margin: '0 auto' }}>
         <FadeIn>
-          <SectionLabel text="What you get" />
+          <SectionLabel text="What Founding Members get" />
           <SectionHeadline>More than an app. A movement.</SectionHeadline>
         </FadeIn>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '48px' }}>
@@ -1740,7 +1766,8 @@ function AppContent() {
         <FadeIn>
           <SectionLabel text="Pricing" />
           <SectionHeadline>One payment. Lifetime access.</SectionHeadline>
-          <p style={{ color: 'var(--white-40)', textAlign: 'center', fontSize: '16px', maxWidth: '500px', margin: '0 auto 50px' }}>Only 1,000 spots total. When they're gone, they're gone.</p>
+          <p style={{ color: 'var(--white-40)', textAlign: 'center', fontSize: '16px', maxWidth: '500px', margin: '0 auto 30px' }}>Only 1,000 spots total. When they're gone, they're gone.</p>
+          <p style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', fontSize: '15px', fontWeight: 600, maxWidth: '600px', margin: '0 auto 40px' }}>Premium is $7.90/month for everyone. Founding Members pay once:</p>
         </FadeIn>
         <FadeIn delay={0.1}>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'stretch', flexWrap: 'wrap', justifyContent: 'center' }}>

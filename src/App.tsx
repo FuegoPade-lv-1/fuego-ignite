@@ -3,7 +3,7 @@ import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { supabase } from './lib/supabase';
 
 // ─── Constants ───
-const COUNTER_OFFSET = 300;
+const COUNTER_OFFSET = 0;
 const TOTAL_SPOTS = 1000;
 
 // ─── Waitlist Context (shared count + sold-out state) ───
@@ -1535,7 +1535,7 @@ function PlayerDNASection() {
             )}
 
             <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', textAlign: 'center', marginTop: '16px', lineHeight: 1.5 }}>
-              We'll never share your data. Unsubscribe anytime.
+              Your answers are stored securely and used to create your Player DNA profile. See our <a href="https://app.fuego-padel.com/legal/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.3)', textDecoration: 'underline' }}>Privacy Policy</a>.
             </p>
           </div>
         </FadeIn>
@@ -1716,7 +1716,7 @@ function AppContent() {
             <span style={{ color: 'rgba(255,255,255,0.15)' }}>&#8226;</span>
             <span><strong style={{ color: '#CCFF00', fontSize: '20px', fontWeight: 800 }}>20</strong> alpha testers</span>
             <span style={{ color: 'rgba(255,255,255,0.15)' }}>&#8226;</span>
-            <span><strong style={{ color: '#CCFF00', fontSize: '20px', fontWeight: 800 }}>Summer 2026</strong> launch</span>
+            <span><strong style={{ color: '#CCFF00', fontSize: '20px', fontWeight: 800 }}>Q2 2026</strong> launch</span>
           </div>
         </FadeIn>
       </section>
@@ -1756,7 +1756,7 @@ function AppContent() {
         </FadeIn>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '48px' }}>
           <FadeIn delay={0.05}><WhyNowCard index={0} text="Millions of padel players step on court every day with no data, no feedback, no way to track their game. We're changing that." /></FadeIn>
-          <FadeIn delay={0.10}><WhyNowCard index={1} text="FUEGO PADEL launches Summer 2026. The first 1,000 members get in at a price that will never exist again." /></FadeIn>
+          <FadeIn delay={0.10}><WhyNowCard index={1} text="FUEGO PADEL launches Q2 2026. The first 1,000 members get in at a price that will never exist again." /></FadeIn>
           <FadeIn delay={0.15}><WhyNowCard index={2} text="Premium costs $7.90/month. That's $94.80 per year. In 2 years, $189. In 3 years, $284. Founding Members pay once. Do the math." /></FadeIn>
         </div>
       </section>
@@ -1771,14 +1771,19 @@ function AppContent() {
         </FadeIn>
         <FadeIn delay={0.1}>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'stretch', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <PricingTier name="Early Ignite" price={79} spots="First 200 spots. Lowest price ever." payback="Pays for itself in 11 months. Everything after that is free." />
-            <PricingTier name="Ignite" price={99} spots="Spots 201-700" payback="Pays for itself in 13 months. Everything after that is free." />
-            <PricingTier name="Late Ignite" price={149} spots="Final 300 spots" payback="Pays for itself in 19 months. Everything after that is free." />
+            <PricingTier name="Early Ignite" price={79} spots="First 200 spots. Lowest price ever." payback="Premium is $7.90/mo. You save after 10 months." />
+            <PricingTier name="Ignite" price={99} spots="Spots 201-700" payback="Premium is $7.90/mo. You save after 13 months." />
+            <PricingTier name="Late Ignite" price={149} spots="Final 300 spots" payback="Premium is $7.90/mo. You save after 19 months." />
           </div>
         </FadeIn>
+        <FadeIn delay={0.15}>
+          <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '13px', color: 'rgba(255,255,255,0.3)', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>
+            Pricing at launch. Join the waitlist to lock in your tier.
+          </p>
+        </FadeIn>
         <FadeIn delay={0.2}>
-          <p style={{ textAlign: 'center', marginTop: '32px', fontSize: '14px', color: 'var(--white-40)', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
-            The average padel player stays active for 6+ years. That's $569 in subscriptions, or one payment of $79-149. Your call.
+          <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '14px', color: 'var(--white-40)', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
+            3 years of Premium = $284. Founding Members pay $79 once.
           </p>
         </FadeIn>
         <FadeIn delay={0.25}>
@@ -1797,7 +1802,7 @@ function AppContent() {
             <FAQItem q="What is FUEGO PADEL?" a="Your AI-powered padel app. Real-time scoring, performance stats, player rankings and a global network of athletes." />
             <FAQItem q="Is this a subscription?" a="No. One payment, lifetime access. No monthly fees, no renewals, no hidden costs." />
             <FAQItem q="What does Lifetime mean?" a="Access for the lifetime of the FUEGO PADEL platform. As long as FUEGO exists, your access exists." />
-            <FAQItem q="When does the app launch?" a="Summer 2026. Founding Members get early access before everyone else." />
+            <FAQItem q="When does the app launch?" a="Q2 2026. Founding Members get early access before everyone else." />
             <FAQItem q="What if I stop playing?" a="Your Founding Member status stays forever. Come back anytime. Your number, your badge, your access will be waiting." />
             <FAQItem q="Can I transfer my membership?" a="No. Your Founding Member number is personal and non-transferable." />
           </div>

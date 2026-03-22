@@ -549,6 +549,43 @@ const DNA_QUESTIONS = [
     options: ['Just for fun', 'Social competitive', 'Club level', 'Tournament player', 'Want to go pro'],
     weight: 0.05,
   },
+  {
+    id: 'scoreboard',
+    label: 'How often does score confusion interrupt your match?',
+    type: 'select' as const,
+    options: ['Never', 'Rarely', 'Sometimes', 'Every match'],
+    weight: 0.02,
+  },
+  {
+    id: 'partnership',
+    label: 'How well do you and your partner communicate on court?',
+    type: 'slider' as const,
+    leftLabel: 'We clash',
+    rightLabel: 'We\'re in sync',
+    weight: 0.04,
+  },
+  {
+    id: 'tactical',
+    label: 'When you\'re losing, what do you change first?',
+    type: 'select' as const,
+    options: ['Shot selection', 'Positioning', 'Tempo', 'Partner communication', 'Nothing, I keep playing my game'],
+    weight: 0.04,
+  },
+  {
+    id: 'court_reading',
+    label: 'How well do you read your opponents\' next move?',
+    type: 'slider' as const,
+    leftLabel: 'I react',
+    rightLabel: 'I anticipate',
+    weight: 0.04,
+  },
+  {
+    id: 'self_awareness',
+    label: 'After a match you lost, can you name the three main reasons why?',
+    type: 'select' as const,
+    options: ['Yes, always', 'Usually one or two', 'Not really', 'I just know it felt off'],
+    weight: 0.04,
+  },
 ];
 
 // ─── Scoring & Radar Calculation ───
@@ -567,6 +604,12 @@ function calculateDNA(answers: Record<string, any>): { score: number; radar: Rec
       if (qId === 'experience') raw = Math.min(0.85, raw);
       // Ambition: top option caps at 80%
       if (qId === 'ambition') raw = Math.min(0.80, raw);
+      // Scoreboard: "Never" (idx=0) = best, "Every match" (idx=3) = worst → invert
+      if (qId === 'scoreboard') raw = 1 - raw;
+      // Self-awareness: "Yes, always" (idx=0) = best → invert
+      if (qId === 'self_awareness') raw = 1 - raw;
+      // Tactical: "Nothing, I keep playing my game" (last) = worst → score 0
+      if (qId === 'tactical') raw = idx < q.options!.length - 1 ? 0.6 + (idx / (q.options!.length - 2)) * 0.4 : 0.1;
       return raw;
     }
     if (q.type === 'multi') {
@@ -617,7 +660,7 @@ function calculateDNA(answers: Record<string, any>): { score: number; radar: Rec
     Smash: ['PWR', 'NET'], Lob: ['DEF', 'CTL'], Serve: ['PWR'],
     Bandeja: ['NET', 'CTL'], Vibora: ['NET', 'PWR'], 'Drop Shot': ['CTL', 'NET'],
   };
-  const weakPenalty: Record<string, number> = { PWR: 0, CTL: 0, NET: 0, DEF: 0, END: 0, MNT: 0 };
+  const weakPenalty: Record<string, number> = { PWR: 0, CTL: 0, NET: 0, DEF: 0, END: 0, MNT: 0, TAC: 0, AWR: 0 };
   for (const shot of weakShots) {
     for (const axis of (shotToAxis[shot] || [])) {
       weakPenalty[axis] += 0.4; // Each weakness penalizes related axes
@@ -637,6 +680,12 @@ function calculateDNA(answers: Record<string, any>): { score: number; radar: Rec
 
   const clamp = (v: number) => Math.round(Math.min(10, Math.max(1, v)) * 100) / 100;
 
+  // New Q12-Q16 normalized values
+  const tactical = normalize('tactical');
+  const courtReading = normalize('court_reading');
+  const partnership = normalize('partnership');
+  const selfAwareness = normalize('self_awareness');
+
   const radar = {
     PWR: clamp(((1 - pp) * 0.4 + style * 0.3 + phys * 0.2 + strongest * 0.1) * 9 + 1 - weakPenalty.PWR),
     CTL: clamp((pp * 0.4 + (1 - style) * 0.3 + exp * 0.2 + freq * 0.1) * 9 + 1 - weakPenalty.CTL),
@@ -644,6 +693,8 @@ function calculateDNA(answers: Record<string, any>): { score: number; radar: Rec
     DEF: clamp(((1 - style) * 0.4 + (1 - nb) * 0.3 + phys * 0.2 + mental * 0.1) * 9 + 1 - weakPenalty.DEF),
     END: clamp((phys * 0.5 + freq * 0.3 + ambition * 0.1 + exp * 0.1) * 9 + 1 - weakPenalty.END),
     MNT: clamp((mental * 0.5 + exp * 0.2 + ambition * 0.2 + freq * 0.1) * 9 + 1 - weakPenalty.MNT),
+    TAC: clamp((tactical * 0.5 + courtReading * 0.3 + exp * 0.1 + mental * 0.1) * 9 + 1 - weakPenalty.TAC),
+    AWR: clamp((selfAwareness * 0.4 + partnership * 0.4 + mental * 0.1 + exp * 0.1) * 9 + 1 - weakPenalty.AWR),
   };
 
   return { score, radar };
@@ -651,7 +702,7 @@ function calculateDNA(answers: Record<string, any>): { score: number; radar: Rec
 
 // ─── Axis Display Names ───
 const AXIS_DISPLAY: Record<string, string> = {
-  PWR: 'Power', CTL: 'Control', NET: 'Net Play', DEF: 'Defense', END: 'Endurance', MNT: 'Mental',
+  PWR: 'Power', CTL: 'Control', NET: 'Net Play', DEF: 'Defense', END: 'Endurance', MNT: 'Mental', TAC: 'Tactics', AWR: 'Awareness',
 };
 
 // ─── Radar Chart SVG ───

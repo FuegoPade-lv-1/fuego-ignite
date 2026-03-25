@@ -3,7 +3,7 @@ import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { supabase } from './lib/supabase';
 
 // ─── Constants ───
-const COUNTER_OFFSET = 300;
+const COUNTER_OFFSET = 370;
 const TOTAL_SPOTS = 1000;
 
 // ─── Waitlist Context (shared count + sold-out state) ───

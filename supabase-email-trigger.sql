@@ -142,6 +142,9 @@ BEGIN
     || '&nbsp;&nbsp;·&nbsp;&nbsp;'
     || '<a href="https://app.fuego-padel.com/privacy" style="color:#555555;text-decoration:none;">Privacy</a>'
     || '</p>'
+    || '<p style="margin:12px 0 0 0;font-size:11px;color:#333333;">'
+    || 'Don''t want to hear from us? <a href="mailto:legal@fuego-padel.com?subject=Unsubscribe&body=Please%20remove%20me%20from%20the%20FUEGO%20IGNITE%20mailing%20list.%20Email:%20' || NEW.email || '" style="color:#555555;text-decoration:underline;">Unsubscribe</a>'
+    || '</p>'
     || '</td></tr>'
 
     -- ── Bottom accent line ──

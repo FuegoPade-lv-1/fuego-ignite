@@ -586,6 +586,79 @@ const DNA_QUESTIONS = [
     options: ['Yes, always', 'Usually one or two', 'Not really', 'I just know it felt off'],
     weight: 0.04,
   },
+  // ─── Q17-Q26: Insight questions (weight: 0 — do NOT affect FUEGO Score or Radar) ───
+  {
+    id: 'data_blindness',
+    label: 'After your last 10 matches, do you know your win rate?',
+    type: 'select' as const,
+    options: ['Yes, exactly', 'Roughly', 'No idea'],
+    weight: 0,
+  },
+  {
+    id: 'opponent_analysis',
+    label: "Before a match, do you know your opponent's strengths and weaknesses?",
+    type: 'select' as const,
+    options: ['Yes, in detail', 'Basic info like level and win rate', 'Just their name', 'Nothing'],
+    weight: 0,
+  },
+  {
+    id: 'progress',
+    label: 'Do you feel like you\'re actually improving month over month?',
+    type: 'slider' as const,
+    leftLabel: 'No clue',
+    rightLabel: 'I see clear progress',
+    weight: 0,
+  },
+  {
+    id: 'scoreboard_usefulness',
+    label: 'A scoreboard at the court that tracks every point and sends the result straight to your app. How useful would that be?',
+    type: 'select' as const,
+    options: ['Not needed', 'Nice to have', 'Very useful', 'I need this yesterday'],
+    weight: 0,
+  },
+  {
+    id: 'comparability',
+    label: 'Can you compare your level to players at other clubs or cities?',
+    type: 'select' as const,
+    options: ['Yes', 'Only within my group', 'Impossible'],
+    weight: 0,
+  },
+  {
+    id: 'coaching_gap',
+    label: 'After a match, how clear is it to you what specifically to practice next?',
+    type: 'slider' as const,
+    leftLabel: 'No idea',
+    rightLabel: 'Crystal clear',
+    weight: 0,
+  },
+  {
+    id: 'performance_history',
+    label: 'Can you look back at your matches from 3 months ago and see how your game has changed?',
+    type: 'select' as const,
+    options: ['Yes, I track everything', 'I have some notes', 'No, it\'s all in my head', 'I have no idea how I played 3 months ago'],
+    weight: 0,
+  },
+  {
+    id: 'live_feedback',
+    label: 'During a match, do you get any real-time feedback on your performance?',
+    type: 'select' as const,
+    options: ['Yes', 'Only from my partner', 'Only from spectators', 'Nothing, I find out after'],
+    weight: 0,
+  },
+  {
+    id: 'player_network',
+    label: 'Do you know how many active padel players are in your area?',
+    type: 'select' as const,
+    options: ['Yes, exactly', 'Roughly', 'No idea'],
+    weight: 0,
+  },
+  {
+    id: 'app_readiness',
+    label: 'Would you use an app that tracks every match, shows your ranking, and tells you what to improve?',
+    type: 'select' as const,
+    options: ['Absolutely', 'Maybe', 'Probably not'],
+    weight: 0,
+  },
 ];
 
 // ─── Scoring & Radar Calculation ───
@@ -1659,7 +1732,7 @@ function AppContent() {
         {/* Free assessment line */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.4, duration: 0.6 }} style={{ marginBottom: '40px', maxWidth: '650px', textAlign: 'center' }}>
           <p style={{ margin: 0, fontSize: '14px', color: 'var(--white-40)', letterSpacing: '0.5px' }}>
-            Free assessment. 2 minutes. No signup required.
+            Free assessment. 3 minutes. No signup required.
           </p>
         </motion.div>
 
